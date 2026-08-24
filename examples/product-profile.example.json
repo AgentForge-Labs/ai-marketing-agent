@@ -1,0 +1,37 @@
+{
+  "id": "product-slug",
+  "name": "Ürün Adı",
+  "website": "https://example.com",
+  "taglines": {
+    "short60": "SaaS ürününün 60 karakterlik özeti",
+    "medium120": "Hedef kullanıcı ve temel değeri açıklayan onaylı tagline"
+  },
+  "descriptions": {
+    "short160": "Dizinler için kısa ve doğrulanmış ürün açıklaması.",
+    "medium300": "Ürünün hedef kullanıcısını, problem alanını ve temel sonucunu açıklayan orta uzunlukta metin.",
+    "long1000": "Uzun açıklama için onaylı içerik. Doğrulanmamış iddia, uydurma müşteri sonucu veya yanıltıcı karşılaştırma içermez."
+  },
+  "categories": [
+    "SaaS",
+    "Marketing"
+  ],
+  "useCases": [
+    "Use case 1",
+    "Use case 2"
+  ],
+  "pricingSummary": "Fiyatlandırma özeti",
+  "assets": {
+    "logo": "assets://brand-logo",
+    "screenshots": [
+      "assets://product-screenshot-1"
+    ]
+  },
+  "founder": {
+    "name": "Ertuğrul Murat",
+    "bio": "Onaylı kurucu bio'su"
+  },
+  "tracking": {
+    "campaign": "launch_2026"
+  }
+}
+

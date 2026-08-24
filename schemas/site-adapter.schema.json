@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/site-adapter.schema.json",
+  "title": "Marketing Site Adapter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "siteId",
+    "version",
+    "lastVerifiedAt",
+    "persona",
+    "domains",
+    "policy",
+    "auth",
+    "flows"
+  ],
+  "$defs": {
+    "locator": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "role",
+            "label",
+            "placeholder",
+            "name",
+            "id",
+            "css"
+          ]
+        },
+        "role": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "flow": {
+      "type": "object",
+      "required": [
+        "execution",
+        "entryUrl"
+      ],
+      "properties": {
+        "execution": {
+          "enum": [
+            "manual_only",
+            "draft_only",
+            "browser_with_submit_approval",
+            "api_with_approval",
+            "api_auto"
+          ]
+        },
+        "entryUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "formFingerprint": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "valueFrom",
+              "locators"
+            ],
+            "properties": {
+              "valueFrom": {
+                "type": "string"
+              },
+              "locators": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/locator"
+                }
+              }
+            }
+          }
+        },
+        "submit": {
+          "type": "object",
+          "required": [
+            "locator",
+            "requiresApproval"
+          ],
+          "properties": {
+            "locator": {
+              "$ref": "#/$defs/locator"
+            },
+            "requiresApproval": {
+              "type": "boolean"
+            }
+          }
+        },
+        "success": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "matches"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "url",
+                  "text",
+                  "apiResponseId"
+                ]
+              },
+              "matches": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "siteId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "lastVerifiedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "persona": {
+      "enum": [
+        "founder",
+        "brand"
+      ]
+    },
+    "domains": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "sourceUrl",
+        "lastCheckedAt",
+        "execution",
+        "allowedActions",
+        "deniedActions"
+      ],
+      "properties": {
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "lastCheckedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "execution": {
+          "enum": [
+            "manual_only",
+            "draft_only",
+            "browser_with_submit_approval",
+            "api_with_approval",
+            "api_auto"
+          ]
+        },
+        "allowedActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deniedActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "manual",
+            "storageState",
+            "oauth",
+            "apiKey"
+          ]
+        },
+        "storageStateRef": {
+          "type": "string"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "maxConcurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        }
+      }
+    },
+    "flows": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/flow"
+      }
+    }
+  }
+}

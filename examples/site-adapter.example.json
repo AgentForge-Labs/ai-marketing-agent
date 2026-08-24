@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "siteId": "example-directory",
+  "version": 1,
+  "lastVerifiedAt": "2026-08-25T00:00:00Z",
+  "persona": "brand",
+  "domains": [
+    "example.com"
+  ],
+  "policy": {
+    "sourceUrl": "https://example.com/terms",
+    "lastCheckedAt": "2026-08-25T00:00:00Z",
+    "execution": "browser_with_submit_approval",
+    "allowedActions": [
+      "login",
+      "submitListing"
+    ],
+    "deniedActions": [
+      "bulkDm",
+      "autoComment",
+      "fakeReview"
+    ]
+  },
+  "auth": {
+    "mode": "storageState",
+    "storageStateRef": "vault://sites/example-directory/brand"
+  },
+  "limits": {
+    "maxConcurrency": 1
+  },
+  "flows": {
+    "register": {
+      "execution": "manual_only",
+      "entryUrl": "https://example.com/register"
+    },
+    "submitListing": {
+      "execution": "browser_with_submit_approval",
+      "entryUrl": "https://example.com/submit",
+      "formFingerprint": "sha256:replace-after-recording",
+      "fields": [
+        {
+          "valueFrom": "product.name",
+          "locators": [
+            {
+              "kind": "label",
+              "name": "Product name"
+            },
+            {
+              "kind": "css",
+              "value": "input[name='product_name']"
+            }
+          ]
+        },
+        {
+          "valueFrom": "product.website",
+          "locators": [
+            {
+              "kind": "label",
+              "name": "Website"
+            }
+          ]
+        }
+      ],
+      "submit": {
+        "locator": {
+          "kind": "role",
+          "role": "button",
+          "name": "Submit"
+        },
+        "requiresApproval": true
+      },
+      "success": [
+        {
+          "kind": "url",
+          "matches": "/submission/"
+        },
+        {
+          "kind": "text",
+          "matches": "submitted successfully"
+        }
+      ]
+    }
+  }
+}
+

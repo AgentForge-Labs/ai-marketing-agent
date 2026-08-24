@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+playwright/.auth/
+auth/
+secrets/
+runtime/
+test-results/
+playwright-report/
+traces/
+videos/
+artifacts/private/
+*.storage-state.json
+*.trace.zip
+

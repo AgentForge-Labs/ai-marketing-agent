@@ -1,0 +1,26 @@
+{
+  "founder": {
+    "displayName": "Ertuğrul Murat",
+    "preferredHandle": "ertugrulmurat",
+    "fallbackHandles": [
+      "ertugrulmurat_marka",
+      "ertugrul_marka"
+    ],
+    "emailRef": "vault://identity/founder-email",
+    "avatarRef": "assets://founder-avatar"
+  },
+  "brand": {
+    "displayName": "Ürün Adı",
+    "owner": "Ertuğrul Murat",
+    "emailRef": "vault://identity/listings-email",
+    "logoRef": "assets://brand-logo"
+  },
+  "siteAccounts": {
+    "example-directory": {
+      "persona": "brand",
+      "actualHandle": "urunadi",
+      "authStateRef": "vault://sites/example-directory/brand"
+    }
+  }
+}
+

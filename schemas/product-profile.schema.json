@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/product-profile.schema.json",
+  "title": "Product Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "website",
+    "taglines",
+    "descriptions",
+    "categories",
+    "assets",
+    "founder"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "website": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "taglines": {
+      "type": "object",
+      "required": [
+        "short60",
+        "medium120"
+      ],
+      "properties": {
+        "short60": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "medium120": {
+          "type": "string",
+          "maxLength": 120
+        }
+      }
+    },
+    "descriptions": {
+      "type": "object",
+      "required": [
+        "short160",
+        "medium300",
+        "long1000"
+      ],
+      "properties": {
+        "short160": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "medium300": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "long1000": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "useCases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pricingSummary": {
+      "type": "string"
+    },
+    "assets": {
+      "type": "object",
+      "required": [
+        "logo",
+        "screenshots"
+      ],
+      "properties": {
+        "logo": {
+          "type": "string"
+        },
+        "screenshots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "founder": {
+      "type": "object",
+      "required": [
+        "name",
+        "bio"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "bio": {
+          "type": "string"
+        }
+      }
+    },
+    "tracking": {
+      "type": "object"
+    }
+  }
+}
+
