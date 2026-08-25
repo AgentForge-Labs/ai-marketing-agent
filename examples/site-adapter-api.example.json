@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "1.1.0",
+  "siteId": "apilist-cloud",
+  "version": 1,
+  "lastVerifiedAt": "2026-08-26T00:00:00Z",
+  "persona": "brand",
+  "domains": [
+    "apilist.cloud"
+  ],
+  "policy": {
+    "sourceUrl": "https://apilist.cloud/terms",
+    "lastCheckedAt": "2026-08-26T00:00:00Z",
+    "execution": "api_auto",
+    "allowedActions": [
+      "register",
+      "submitListing"
+    ],
+    "deniedActions": [
+      "bulkDm",
+      "autoComment",
+      "fakeReview"
+    ]
+  },
+  "auth": {
+    "mode": "apiKey",
+    "credentialRef": "vault://sites/apilist-cloud/apikey",
+    "refreshPolicy": "manual"
+  },
+  "limits": {
+    "maxConcurrency": 2,
+    "maxActionsPerHour": 20,
+    "maxActionsPerDay": 100,
+    "minDelaySecondsBetweenActions": 5
+  },
+  "retry": {
+    "maxAttempts": 3,
+    "backoffSeconds": [60, 300, 1800],
+    "retryOn": ["timeout", "networkError", "rateLimited"]
+  },
+  "flows": {
+    "register": {
+      "kind": "api",
+      "execution": "api_auto",
+      "baseUrl": "https://api.apilist.cloud/v1",
+      "requests": [
+        {
+          "name": "createVendorAccount",
+          "method": "POST",
+          "path": "/vendors",
+          "headersFrom": {
+            "Authorization": "vault://sites/apilist-cloud/apikey"
+          },
+          "payloadFrom": {
+            "companyName": "product.name",
+            "website": "product.website",
+            "contactEmail": "identity.brand.email"
+          },
+          "idempotencyHeader": "Idempotency-Key",
+          "expectStatus": 201,
+          "successExtract": {
+            "vendorId": "$.data.vendorId"
+          }
+        }
+      ],
+      "success": [
+        { "kind": "status", "matches": "201" },
+        { "kind": "jsonPath", "matches": "$.data.vendorId" }
+      ]
+    },
+    "submitListing": {
+      "kind": "api",
+      "execution": "api_auto",
+      "baseUrl": "https://api.apilist.cloud/v1",
+      "requests": [
+        {
+          "name": "createListing",
+          "method": "POST",
+          "path": "/listings",
+          "headersFrom": {
+            "Authorization": "vault://sites/apilist-cloud/apikey"
+          },
+          "payloadFrom": {
+            "name": "product.name",
+            "website": "product.website",
+            "tagline": "product.tagline.short",
+            "description": "product.description.medium",
+            "category": "product.category.primary",
+            "logoUrl": "assets.logoPublicUrl"
+          },
+          "idempotencyHeader": "Idempotency-Key",
+          "expectStatus": 201,
+          "successExtract": {
+            "listingUrl": "$.data.listingUrl",
+            "listingId": "$.data.id"
+          }
+        }
+      ],
+      "success": [
+        { "kind": "status", "matches": "201" },
+        { "kind": "jsonPath", "matches": "$.data.listingUrl" }
+      ]
+    }
+  },
+  "notes": "API-first site örneği: tarayıcı olmadan tam otonom akış, vault referanslı secret'lar, idempotency header ve response'tan audit çıkarımı."
+}

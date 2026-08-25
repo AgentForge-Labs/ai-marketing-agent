@@ -1,17 +1,19 @@
 {
-  "schemaVersion": "1.0.0",
-  "siteId": "example-directory",
+  "schemaVersion": "1.1.0",
+  "siteId": "aistack-directory",
   "version": 1,
-  "lastVerifiedAt": "2026-08-25T00:00:00Z",
+  "lastVerifiedAt": "2026-08-26T00:00:00Z",
   "persona": "brand",
   "domains": [
-    "example.com"
+    "aistack.directory"
   ],
+  "extends": "families/generic-directory.adapter.json",
   "policy": {
-    "sourceUrl": "https://example.com/terms",
-    "lastCheckedAt": "2026-08-25T00:00:00Z",
-    "execution": "browser_with_submit_approval",
+    "sourceUrl": "https://aistack.directory/terms",
+    "lastCheckedAt": "2026-08-26T00:00:00Z",
+    "execution": "browser_auto",
     "allowedActions": [
+      "register",
       "login",
       "submitListing"
     ],
@@ -23,78 +25,196 @@
   },
   "auth": {
     "mode": "storageState",
-    "storageStateRef": "vault://sites/example-directory/brand"
+    "storageStateRef": "vault://sites/aistack-directory/brand",
+    "refreshPolicy": "onExpiry"
   },
   "limits": {
-    "maxConcurrency": 1
+    "maxConcurrency": 1,
+    "maxActionsPerHour": 3,
+    "maxActionsPerDay": 8,
+    "minDelaySecondsBetweenActions": 45,
+    "quietHours": {
+      "startLocal": "01:00",
+      "endLocal": "06:00",
+      "timezone": "Europe/Berlin"
+    }
+  },
+  "retry": {
+    "maxAttempts": 3,
+    "backoffSeconds": [300, 1800, 7200],
+    "retryOn": ["timeout", "networkError", "rateLimited"]
+  },
+  "captcha": {
+    "policy": "abort_and_notify",
+    "notifyChannelRef": "telegram://marketing-agent/alerts",
+    "maxHumanSolvesPerDay": 5
   },
   "flows": {
     "register": {
-      "execution": "manual_only",
-      "entryUrl": "https://example.com/register"
-    },
-    "submitListing": {
-      "execution": "browser_with_submit_approval",
-      "entryUrl": "https://example.com/submit",
+      "execution": "browser_auto",
+      "entryUrl": "https://aistack.directory/signup",
       "formFingerprint": "sha256:replace-after-recording",
       "fields": [
         {
-          "valueFrom": "product.name",
+          "valueFrom": "identity.brand.email",
+          "fieldType": "email",
           "locators": [
-            {
-              "kind": "label",
-              "name": "Product name"
-            },
-            {
-              "kind": "css",
-              "value": "input[name='product_name']"
-            }
+            { "kind": "label", "name": "Work email" },
+            { "kind": "css", "value": "input[name='email']" }
           ]
         },
         {
-          "valueFrom": "product.website",
+          "valueFrom": "vault://sites/aistack-directory/brand/password",
+          "fieldType": "password",
           "locators": [
-            {
-              "kind": "label",
-              "name": "Website"
-            },
-            {
-              "kind": "testId",
-              "value": "listing-website-input"
-            }
+            { "kind": "label", "name": "Password" }
+          ]
+        },
+        {
+          "valueFrom": "product.name",
+          "fieldType": "text",
+          "locators": [
+            { "kind": "label", "name": "Company" }
           ]
         }
       ],
       "submit": {
-        "locator": {
-          "kind": "role",
-          "role": "button",
-          "name": "Submit"
-        },
-        "requiresApproval": true
+        "locator": { "kind": "role", "role": "button", "name": "Create account" },
+        "requiresApproval": false
       },
       "success": [
+        { "kind": "url", "matches": "/dashboard" },
+        { "kind": "text", "matches": "verify your email" }
+      ]
+    },
+    "submitListing": {
+      "execution": "browser_auto",
+      "entryUrl": "https://aistack.directory/submit",
+      "formFingerprint": "sha256:replace-after-recording",
+      "steps": [
         {
-          "kind": "url",
-          "matches": "/submission/"
+          "name": "basics",
+          "fields": [
+            {
+              "valueFrom": "product.name",
+              "fieldType": "text",
+              "locators": [
+                { "kind": "label", "name": "Product name" },
+                { "kind": "testId", "value": "listing-name-input" }
+              ]
+            },
+            {
+              "valueFrom": "product.website",
+              "fieldType": "text",
+              "locators": [
+                { "kind": "label", "name": "Website" }
+              ]
+            },
+            {
+              "valueFrom": "product.tagline.short",
+              "fieldType": "textarea",
+              "maxLength": 120,
+              "locators": [
+                { "kind": "placeholder", "value": "One-line pitch" }
+              ]
+            }
+          ],
+          "submit": {
+            "locator": { "kind": "role", "role": "button", "name": "Next step" },
+            "requiresApproval": false
+          },
+          "wait": { "kind": "text", "matches": "Tell us more" }
         },
         {
-          "kind": "text",
-          "matches": "submitted successfully"
+          "name": "details",
+          "fields": [
+            {
+              "valueFrom": "product.description.medium",
+              "fieldType": "richtext",
+              "maxLength": 1000,
+              "locators": [
+                { "kind": "css", "value": "[contenteditable='true'].editor" },
+                { "frame": ["#editor-iframe"], "kind": "css", "value": "body.editor-frame" }
+              ]
+            },
+            {
+              "valueFrom": "product.category.primary",
+              "fieldType": "select",
+              "optionsValueFrom": "taxonomy.aistack.categories",
+              "locators": [
+                { "kind": "label", "name": "Category" }
+              ]
+            },
+            {
+              "valueFrom": "product.integrations",
+              "fieldType": "multiselect",
+              "optionsValueFrom": "taxonomy.aistack.integrations",
+              "locators": [
+                { "kind": "label", "name": "Works with" }
+              ]
+            },
+            {
+              "valueFrom": "product.pricing.hasFreeTier",
+              "fieldType": "checkbox",
+              "condition": { "field": "product.category.primary", "equals": "ai-tools" },
+              "locators": [
+                { "kind": "label", "name": "Has a free plan" }
+              ]
+            }
+          ],
+          "submit": {
+            "locator": { "kind": "role", "role": "button", "name": "Next step" },
+            "requiresApproval": false
+          },
+          "wait": { "kind": "selector", "matches": "#asset-upload" }
+        },
+        {
+          "name": "assets",
+          "fields": [
+            {
+              "valueFrom": "assets.logoPath",
+              "fieldType": "file",
+              "uploadRef": "vault://assets/logo.png",
+              "locators": [
+                { "kind": "css", "value": "input[type='file'][accept*='image'][name='logo']" }
+              ]
+            },
+            {
+              "valueFrom": "assets.screenshotPaths[0]",
+              "fieldType": "file",
+              "uploadRef": "vault://assets/screenshots/main.png",
+              "locators": [
+                { "kind": "css", "value": "input[type='file'][name='screenshot']" }
+              ]
+            }
+          ],
+          "submit": {
+            "locator": { "kind": "role", "role": "button", "name": "Submit listing" },
+            "requiresApproval": false
+          },
+          "wait": { "kind": "url", "matches": "/submission/" }
         }
+      ],
+      "success": [
+        { "kind": "url", "matches": "/listing/" },
+        { "kind": "text", "matches": "is live" }
       ]
     },
     "emailVerification": {
       "kind": "email",
-      "execution": "manual_only",
-      "mailboxRef": "vault://sites/example-directory/brand/inbox",
+      "execution": "api_auto",
+      "mailbox": {
+        "protocol": "imap",
+        "mailboxRef": "vault://sites/aistack-directory/brand/inbox",
+        "subjectContains": "Confirm your listing",
+        "linkPattern": "https://aistack\\.directory/verify\\?token=",
+        "processMode": "clickLink",
+        "markProcessed": true
+      },
       "success": [
-        {
-          "kind": "url",
-          "matches": "/listing/"
-        }
+        { "kind": "url", "matches": "/listing/" }
       ]
     }
-  }
+  },
+  "notes": "Karmaşık site örneği: çok adımlı wizard, richtext + iframe locator, select/multiselect option eşleme, koşullu alan, dosya yükleme, otomatik IMAP e-posta doğrulaması, hız sınırları ve retry politikası."
 }
-

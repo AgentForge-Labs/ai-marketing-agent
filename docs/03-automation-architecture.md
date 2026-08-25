@@ -165,6 +165,23 @@ Dizinlerin çoğu submission sonrası e-posta onayı ister. Bu adım tamamlanmad
 
 ---
 
+## Karmaşık siteler ve API akışları (schema 1.1.0)
+
+Adapter şeması karmaşık siteleri ve tam otonom çalışmayı şu alanlarla destekler:
+
+- `flows.*.steps`: çok adımlı (wizard) form akışları; her adım kendi URL, alan, submit ve bekleme tanımını taşır.
+- Alan tipleri: `fieldType` ile text/textarea/select/multiselect/checkbox/file/richtext; select seçenekleri `optionsValueFrom` ile ürün profilinden eşlenir; dosya yüklemesi `uploadRef` ile vault'tan alınır; koşullu alanlar `condition` ile ifade edilir.
+- iframe içindeki alanlar locator'da `frame` CSS zinciriyle hedeflenir.
+- `kind=api` akışları: `baseUrl` + `requests[]` (method/path/payloadFrom/headersFrom/idempotencyHeader/expectStatus/successExtract). Resmî veya network analizinden tespit edilen API'ler tarayıcıya hiç gerek kalmadan çalışır.
+- `execution=browser_auto` ve `api_auto`: onaysız tam otonom modlar. Onay gerektiren eski modlar yalnızca politika gerektiren kanallar için kalır.
+- `limits`: saatlik/günlük eylem üst sınırı, eylemler arası minimum gecikme ve sessiz saatler (`quietHours`). Browser akışlarında `maxConcurrency: 1` kuralı değişmez.
+- `retry`: üst sınırı ve backoff dizisi olan yeniden deneme politikası; belirsiz sonuçlar asla otomatik retry edilmez.
+- `captcha`: runner CAPTCHA'yı çözmez. Tespit edilince iş durur, `notifyChannelRef` üzerinden bildirim gider ve insan çözüm kuyruğu beslenir.
+- `emailVerification`: şemada `mailbox.protocol` (imap/microsoftGraph/googleApi) ile tanımlanır; runner gelen kutusunu okur, doğrulama bağlantısına agent tıklar.
+- `extends`: family adapter kalıtımı. Merge sırası family → site adapter; site dosyası yalnızca farkları taşır.
+
+Örnekler: [`examples/site-adapter.example.json`](../examples/site-adapter.example.json) (karmaşık wizard + upload + IMAP doğrulama), [`examples/site-adapter-api.example.json`](../examples/site-adapter-api.example.json) (API-first), [`examples/adapter-family-generic-directory.example.json`](../examples/adapter-family-generic-directory.example.json) (family).
+
 ## Form Fingerprint ve Self-Healing Drift
 
 Fingerprint şu normalize edilmiş bilgilerin hash'idir:

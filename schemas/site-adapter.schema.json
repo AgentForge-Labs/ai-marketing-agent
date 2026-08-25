@@ -21,7 +21,7 @@
       "required": [
         "kind"
       ],
-      "description": "kind'e göre beklenen alanlar: role -> role (+name); label, placeholder, name, id, testId, text -> value; css -> value (kısa ve bağlama alınmış). Öncelik sırası: role+name > label > placeholder > stabil name/id/testId > kısa CSS fallback.",
+      "description": "kind'e göre beklenen alanlar: role -> role (+name); label, placeholder, name, id, testId, text -> value; css -> value (kısa ve bağlama alınmış). Öncelik sırası: role+name > label > placeholder > stabil name/id/testId > kısa CSS fallback. frame varsa locator önce verilen CSS frame zincirinde aranır (iframe desteği).",
       "properties": {
         "kind": {
           "description": "testId data-testid benzeri test kimliği, text görünür metin eşleşmesidir.",
@@ -44,6 +44,271 @@
         },
         "value": {
           "type": "string"
+        },
+        "frame": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "İç içe iframe CSS seçici zinciri; örn. ['#editor-iframe', '.toolbar-frame']. Boş veya yoksa ana sayfa kullanılır."
+        }
+      }
+    },
+    "fieldValue": {
+      "type": "object",
+      "required": [
+        "valueFrom",
+        "locators"
+      ],
+      "properties": {
+        "valueFrom": {
+          "type": "string",
+          "description": "product-profile.json içindeki JSON path (ör. product.name, product.description.medium, assets.logoPath)."
+        },
+        "locators": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/locator"
+          }
+        },
+        "fieldType": {
+          "enum": [
+            "text",
+            "textarea",
+            "email",
+            "password",
+            "number",
+            "date",
+            "select",
+            "multiselect",
+            "checkbox",
+            "radio",
+            "file",
+            "richtext",
+            "hidden"
+          ],
+          "default": "text"
+        },
+        "optionsValueFrom": {
+          "type": "string",
+          "description": "fieldType select/multiselect ise seçenek listesinin product-profile path'i; runtime eşleşen option value'sunu seçer."
+        },
+        "uploadRef": {
+          "type": "string",
+          "description": "fieldType file ise yüklenecek varlığın vault:// referansı."
+        },
+        "condition": {
+          "type": "object",
+          "description": "Koşullu alan: belirtilen başka bir alanın değeri eşleşirse doldurulur.",
+          "required": [
+            "field",
+            "equals"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "description": "Aynı flow/steps içindeki başka bir valueFrom path'i."
+            },
+            "equals": {
+              "type": "string"
+            }
+          }
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "webStep": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "description": "Çok adımlı (wizard) form akışının bir adımı; her adım kendi URL, alan ve bekleme tanımını taşıyabilir.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "entryUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Adım farklı bir URL'de başlıyorsa girilir; aksi hâlde önceki adımın devamında kalınır."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fieldValue"
+          }
+        },
+        "submit": {
+          "type": "object",
+          "required": [
+            "locator",
+            "requiresApproval"
+          ],
+          "properties": {
+            "locator": {
+              "$ref": "#/$defs/locator"
+            },
+            "requiresApproval": {
+              "type": "boolean",
+              "description": "Yalnızca son adımın submit'inde false olabilir; ara adımlarda Next/Continue için false kullanılır."
+            }
+          }
+        },
+        "wait": {
+          "type": "object",
+          "required": [
+            "kind",
+            "matches"
+          ],
+          "description": "Sonraki adıma geçmeden beklenen sinyal.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "url",
+                "text",
+                "selector"
+              ]
+            },
+            "matches": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "apiRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "method",
+        "path",
+        "payloadFrom"
+      ],
+      "description": "kind=api akışlarında çalıştırılacak tek HTTP isteği. Değerler product-profile path'lerinden gelir; secret'lar vault:// referansıdır ve log'a yazılmaz.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "headersFrom": {
+          "type": "object",
+          "description": "header adı -> vault:// referansı (ör. Authorization). Düz metin secret yazılmaz.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "payloadFrom": {
+          "type": "object",
+          "description": "JSON body: payload alanı -> product-profile JSON path'i.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "idempotencyHeader": {
+          "type": "string",
+          "description": "Site destekliyorsa idempotency anahtarının gönderileceği header adı (ör. Idempotency-Key)."
+        },
+        "expectStatus": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 299
+        },
+        "successExtract": {
+          "type": "object",
+          "description": "Başarı response'undan audit'e yazılacak alanlar: kayıt adı -> JSONPath (ör. $.data.listingUrl).",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "successSignal": {
+      "type": "object",
+      "required": [
+        "kind",
+        "matches"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "url",
+            "text",
+            "jsonPath",
+            "status",
+            "apiResponseId"
+          ]
+        },
+        "matches": {
+          "type": "string"
+        }
+      }
+    },
+    "retryPolicy": {
+      "type": "object",
+      "description": "Geçici hatalar için üst sınırı olan retry/backoff politikası. Belirsiz sonuçlar asla otomatik retry edilmez; ambiguous kuyruğuna düşer.",
+      "properties": {
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 3
+        },
+        "backoffSeconds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Denemeler arası bekleme süresi dizisi; uzunluğu en az maxAttempts kadar olmalıdır."
+        },
+        "retryOn": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "timeout",
+              "networkError",
+              "rateLimited",
+              "ambiguousResponse"
+            ]
+          },
+          "description": "ambiguousResponse yalnızca idempotency doğrulaması yapılabiliyorsa listeye girer."
+        }
+      }
+    },
+    "quietHours": {
+      "type": "object",
+      "required": [
+        "startLocal",
+        "endLocal",
+        "timezone"
+      ],
+      "properties": {
+        "startLocal": {
+          "type": "string",
+          "pattern": "^\\d{2}:\\d{2}$"
+        },
+        "endLocal": {
+          "type": "string",
+          "pattern": "^\\d{2}:\\d{2}$"
+        },
+        "timezone": {
+          "type": "string"
         }
       }
     },
@@ -52,31 +317,31 @@
       "required": [
         "execution"
       ],
-      "description": "kind varsayılan olarak 'web'dir. kind=email ise akış site içi bir form değil, doğrulama e-postasının manuel kutudan takibidir (ör. emailVerification).",
+      "description": "kind varsayılan olarak 'web'dir. kind=email kendi gelen kutusundaki doğrulama e-postasının işlenmesidir; kind=api resmî/keşfedilmiş HTTP API çağrısıdır.",
       "properties": {
         "kind": {
           "enum": [
             "web",
-            "email"
-          ],
-          "description": "email: submit sonrası e-posta doğrulama gibi site dışı manuel adım."
+            "email",
+            "api"
+          ]
         },
         "execution": {
           "enum": [
             "manual_only",
             "draft_only",
+            "browser_auto",
             "browser_with_submit_approval",
             "api_with_approval",
             "api_auto"
           ]
         },
+        "notes": {
+          "type": "string"
+        },
         "entryUrl": {
           "type": "string",
           "format": "uri"
-        },
-        "mailboxRef": {
-          "type": "string",
-          "description": "vault://... biçiminde izlenecek gelen kutusu referansı; yalnızca kind=email için geçerlidir."
         },
         "formFingerprint": {
           "type": "string"
@@ -84,23 +349,15 @@
         "fields": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": [
-              "valueFrom",
-              "locators"
-            ],
-            "properties": {
-              "valueFrom": {
-                "type": "string"
-              },
-              "locators": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "$ref": "#/$defs/locator"
-                }
-              }
-            }
+            "$ref": "#/$defs/fieldValue"
+          },
+          "description": "Tek sayfalık web akışlarının alanları. Çok adımlı akışlar steps kullanır."
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/webStep"
           }
         },
         "submit": {
@@ -121,22 +378,58 @@
         "success": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": [
-              "kind",
-              "matches"
-            ],
-            "properties": {
-              "kind": {
-                "enum": [
-                  "url",
-                  "text",
-                  "apiResponseId"
-                ]
-              },
-              "matches": {
-                "type": "string"
-              }
+            "$ref": "#/$defs/successSignal"
+          }
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Yalnızca kind=api. İstek path'lerinin öneki."
+        },
+        "requests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/apiRequest"
+          },
+          "description": "Yalnızca kind=api."
+        },
+        "mailbox": {
+          "type": "object",
+          "description": "Yalnızca kind=email. Kendi gelen kutusunun otomatik okunması ve doğrulama bağlantısına otomatik tıklanması.",
+          "required": [
+            "protocol",
+            "mailboxRef"
+          ],
+          "properties": {
+            "protocol": {
+              "enum": [
+                "imap",
+                "microsoftGraph",
+                "googleApi"
+              ]
+            },
+            "mailboxRef": {
+              "type": "string",
+              "description": "vault://... biçiminde kimlik bilgisi referansı."
+            },
+            "subjectContains": {
+              "type": "string"
+            },
+            "linkPattern": {
+              "type": "string",
+              "description": "Tıklanacak doğrulama bağlantısının regex deseni."
+            },
+            "processMode": {
+              "enum": [
+                "clickLink",
+                "extractOnly"
+              ],
+              "default": "clickLink"
+            },
+            "markProcessed": {
+              "type": "boolean",
+              "default": true
             }
           }
         }
@@ -145,43 +438,69 @@
         {
           "if": {
             "not": {
-              "properties": {
-                "kind": {
-                  "const": "email"
-                }
-              },
-              "required": [
-                "kind"
-              ]
+              "required": ["kind"]
             }
           },
           "then": {
-            "required": [
-              "entryUrl"
+            "anyOf": [
+              { "required": ["entryUrl"] },
+              { "required": ["steps"] }
             ]
           }
         },
         {
           "if": {
             "properties": {
-              "kind": {
-                "const": "email"
-              }
+              "kind": { "const": "web" }
             },
-            "required": [
-              "kind"
-            ]
+            "required": ["kind"]
           },
           "then": {
-            "required": [
-              "mailboxRef"
-            ],
+            "anyOf": [
+              { "required": ["entryUrl"] },
+              { "required": ["steps"] }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": { "const": "email" }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["mailbox"],
             "not": {
               "anyOf": [
                 { "required": ["entryUrl"] },
                 { "required": ["fields"] },
+                { "required": ["steps"] },
                 { "required": ["submit"] },
-                { "required": ["formFingerprint"] }
+                { "required": ["formFingerprint"] },
+                { "required": ["baseUrl"] },
+                { "required": ["requests"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": { "const": "api" }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["baseUrl", "requests"],
+            "not": {
+              "anyOf": [
+                { "required": ["entryUrl"] },
+                { "required": ["fields"] },
+                { "required": ["steps"] },
+                { "required": ["submit"] },
+                { "required": ["formFingerprint"] },
+                { "required": ["mailbox"] }
               ]
             }
           }
@@ -219,6 +538,10 @@
         "type": "string"
       }
     },
+    "extends": {
+      "type": "string",
+      "description": "Bu adapter'ın kalıtım aldığı family adapter dosyasının repo-relative yolu (ör. families/generic-directory.adapter.json). Aynı alan burada override edilir; merge sırası: family -> site adapter."
+    },
     "policy": {
       "type": "object",
       "required": [
@@ -241,6 +564,7 @@
           "enum": [
             "manual_only",
             "draft_only",
+            "browser_auto",
             "browser_with_submit_approval",
             "api_with_approval",
             "api_auto"
@@ -276,16 +600,63 @@
         },
         "storageStateRef": {
           "type": "string"
+        },
+        "credentialRef": {
+          "type": "string",
+          "description": "mode oauth|apiKey iken secret'ın vault:// referansı. Düz metin secret yazılmaz."
+        },
+        "refreshPolicy": {
+          "enum": [
+            "onExpiry",
+            "scheduled",
+            "manual"
+          ],
+          "description": "Oturum/token yenileme stratejisi; onExpiry iken runner refresh akışını kendisi dener, başarısızsa alert kuyruğuna düşer."
         }
       }
     },
     "limits": {
       "type": "object",
+      "description": "Hız sınırları ban riskinin ana kontrolüdür. Browser akışları için maxConcurrency 1 kuralı değişmez; API akışları için worker başına artırılabilir.",
       "properties": {
         "maxConcurrency": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 1
+          "minimum": 1
+        },
+        "maxActionsPerHour": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxActionsPerDay": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minDelaySecondsBetweenActions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quietHours": {
+          "$ref": "#/$defs/quietHours"
+        }
+      }
+    },
+    "retry": {
+      "$ref": "#/$defs/retryPolicy"
+    },
+    "captcha": {
+      "type": "object",
+      "description": "CAPTCHA politika alanı. Runner çözüm denemez; tespit edilince iş durur, kanala bildirim gider ve insan çözüm kuyruğu beslenir.",
+      "properties": {
+        "policy": {
+          "const": "abort_and_notify"
+        },
+        "notifyChannelRef": {
+          "type": "string",
+          "description": "Bildirim kanalı referansı (ör. telegram://marketing-agent/alerts)."
+        },
+        "maxHumanSolvesPerDay": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -295,6 +666,10 @@
       "additionalProperties": {
         "$ref": "#/$defs/flow"
       }
+    },
+    "notes": {
+      "type": "string",
+      "description": "İnsan okur açıklama; runner tarafından yok sayılır."
     }
   }
 }

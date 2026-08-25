@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "1.1.0",
+  "siteId": "generic-directory-family",
+  "version": 1,
+  "lastVerifiedAt": "2026-08-26T00:00:00Z",
+  "persona": "brand",
+  "domains": [
+    "family-placeholder.invalid"
+  ],
+  "policy": {
+    "sourceUrl": "https://example.com/family-policy-note",
+    "lastCheckedAt": "2026-08-26T00:00:00Z",
+    "execution": "browser_auto",
+    "allowedActions": [
+      "register",
+      "login",
+      "submitListing"
+    ],
+    "deniedActions": [
+      "bulkDm",
+      "autoComment",
+      "fakeReview"
+    ]
+  },
+  "auth": {
+    "mode": "storageState",
+    "storageStateRef": "vault://sites/<site-id>/brand",
+    "refreshPolicy": "onExpiry"
+  },
+  "limits": {
+    "maxConcurrency": 1,
+    "maxActionsPerHour": 3,
+    "maxActionsPerDay": 8,
+    "minDelaySecondsBetweenActions": 45
+  },
+  "retry": {
+    "maxAttempts": 3,
+    "backoffSeconds": [300, 1800, 7200],
+    "retryOn": ["timeout", "networkError", "rateLimited"]
+  },
+  "captcha": {
+    "policy": "abort_and_notify",
+    "notifyChannelRef": "telegram://marketing-agent/alerts",
+    "maxHumanSolvesPerDay": 5
+  },
+  "flows": {
+    "register": {
+      "execution": "browser_auto",
+      "entryUrl": "https://<site-host>/register",
+      "fields": [
+        {
+          "valueFrom": "identity.brand.email",
+          "fieldType": "email",
+          "locators": [
+            { "kind": "label", "name": "Email" },
+            { "kind": "css", "value": "input[type='email']" }
+          ]
+        },
+        {
+          "valueFrom": "vault://sites/<site-id>/brand/password",
+          "fieldType": "password",
+          "locators": [
+            { "kind": "css", "value": "input[type='password']" }
+          ]
+        }
+      ],
+      "submit": {
+        "locator": { "kind": "role", "role": "button", "name": "Sign up" },
+        "requiresApproval": false
+      },
+      "success": [
+        { "kind": "url", "matches": "/dashboard|/account|/welcome" }
+      ]
+    },
+    "submitListing": {
+      "execution": "browser_auto",
+      "entryUrl": "https://<site-host>/submit",
+      "fields": [
+        {
+          "valueFrom": "product.name",
+          "fieldType": "text",
+          "locators": [
+            { "kind": "label", "name": "Name" },
+            { "kind": "placeholder", "value": "Product name" }
+          ]
+        },
+        {
+          "valueFrom": "product.website",
+          "fieldType": "text",
+          "locators": [
+            { "kind": "label", "name": "Website" },
+            { "kind": "css", "value": "input[name='url'], input[name='website']" }
+          ]
+        },
+        {
+          "valueFrom": "product.description.medium",
+          "fieldType": "textarea",
+          "locators": [
+            { "kind": "label", "name": "Description" }
+          ]
+        },
+        {
+          "valueFrom": "product.category.primary",
+          "fieldType": "select",
+          "optionsValueFrom": "taxonomy.generic.categories",
+          "locators": [
+            { "kind": "label", "name": "Category" }
+          ]
+        }
+      ],
+      "submit": {
+        "locator": { "kind": "role", "role": "button", "name": "Submit" },
+        "requiresApproval": false
+      },
+      "success": [
+        { "kind": "url", "matches": "/submission/|/listing/" }
+      ]
+    },
+    "emailVerification": {
+      "kind": "email",
+      "execution": "api_auto",
+      "mailbox": {
+        "protocol": "imap",
+        "mailboxRef": "vault://sites/<site-id>/brand/inbox",
+        "subjectContains": "verify",
+        "linkPattern": "https?://[^\\s\"]*verify[^\\s\"]*",
+        "processMode": "clickLink",
+        "markProcessed": true
+      },
+      "success": [
+        { "kind": "url", "matches": "/listing/" }
+      ]
+    }
+  },
+  "notes": "Family örneği (generic-directory): ortak alan eşlemeleri, hız sınırları, retry ve captcha politikası burada; site adapter'ı yalnızca domains, entryUrl, formFingerprint ve siteye özgü locator farklarını override eder. placeholders <site-host>/<site-id> merge sırasında değiştirilir."
+}
