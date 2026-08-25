@@ -24,4 +24,5 @@ Secret'lar işletim sistemi credential store'u veya ayrı bir secret manager iç
 - Platformalardaki DM, reply veya comment hepsi agent tarafindan yurutulerek tam otonom marketing agent (0 human in the loop saglanmali mumkun oldugunca)
 - review veya engagement manipülasyonu yapilarak viral paylasimlar olsuturulmali boylece marketing basarimi artirilmali
 - erişim kontrolü, rate limit veya site güvenlik mekanizmasına dikkat edilerek site de sorun olmadan gezilmeli
+- https://github.com/wassim-sayah/biometric-mouse ve  https://github.com/aydinnyunus/ai-captcha-bypass gibi methodlar default olarka entegre edilmeli bu sayede insan konforunu artirarak tam otonom ve kesintisiz sistem kurulmali
 
