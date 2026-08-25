@@ -14,18 +14,7 @@
 
 Secret'lar işletim sistemi credential store'u veya ayrı bir secret manager içinde tutulmalıdır. Adapter dosyaları yalnızca `vault://...` benzeri referans taşır.
 
-## Fail-closed davranış
 
-Runner aşağıdaki durumlarda submit etmeden durmalıdır:
-
-- politika kaydı yok veya süresi geçmiş
-- entry URL izin verilen domain dışında
-- form fingerprint değişmiş
-- locator sıfır veya birden fazla öğe bulmuş
-- gerekli approval kaydı yok
-- opt-out/suppression eşleşmesi var
-- işlem sonucu belirsiz ve aynı idempotency anahtarı daha önce kullanılmış
-- CAPTCHA, 2FA veya erişim kontrolü görülmüş
 
 ## (linkedin xing x gibi sosyal medya platformalri haric) Tum sitelerde kesinlikle uygulanmasi gerekenler
 
