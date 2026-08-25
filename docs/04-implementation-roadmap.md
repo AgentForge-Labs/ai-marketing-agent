@@ -3,12 +3,10 @@
 ## Faz 0 — Ürün ve politika hazırlığı
 
 - Ürün profil şemasını doldur.
-- Kurucu/marka kimlik kayıtlarını kesinleştir.
 - Logo, screenshot ve onaylı metin varyantlarını hazırla.
 - Suppression/opt-out veri modelini tanımla.
 - Her pilot site için güncel ToS ve otomasyon iznini kontrol et.
 
-Çıkış kriteri: Eksik ürün alanı, belirsiz kimlik veya doğrulanmamış politika olan site otomasyon kuyruğuna giremez.
 
 ## Faz 1 — Recorder ve dry-run
 
