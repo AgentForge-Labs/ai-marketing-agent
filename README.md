@@ -2,7 +2,7 @@
 
 Compliance-first SaaS dağıtım ve pazarlama otomasyonu için strateji, veri seti ve adapter sözleşmeleri.
 
-Bu repo şu an dokümantasyon ve şema aşamasındadır. Amaç, 1.000 kanala aynı içeriği topluca gönderen bir bot yapmak değildir. Amaç; izinli dizin/listing işlemlerini deterministik biçimde otomatikleştirmek, sosyal ve topluluk kanallarında ise gerçek kimlik, platform kuralları ve insan onayıyla ilerlemektir.
+Bu repo şu an dokümantasyon ve şema aşamasındadır. Amaç, 1.000 kanala ozgun ve faydali içeriği tam otonom gönderen bir agent gelistimektir. Amaç; izinli dizin/listing işlemlerini deterministik biçimde otomatikleştirmek, sosyal kanallarda insan onayıyla ilerlemektir (zorunlu olanlarda).
 
 ## Temel kararlar
 
