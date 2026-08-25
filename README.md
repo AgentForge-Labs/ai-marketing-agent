@@ -6,15 +6,15 @@ Bu repo şu an dokümantasyon ve şema aşamasındadır. Amaç, 1.000 kanala ayn
 
 ## Temel kararlar
 
-- Tek gerçek kurucu kimliği ve tek marka kimliği kullanılır.
-- Kullanıcı adları rastgele değiştirilmez; tutarlı bir ana handle ve sınırlı fallback listesi kullanılır.
-- Resmî API veya OAuth varsa birinci tercih odur.
-- Tarayıcı otomasyonu yalnızca site kuralları izin veriyorsa kullanılır.
-- LinkedIn gibi site otomasyonunu yasaklayan platformlarda yalnızca dışarıda taslak hazırlanır; yayınlama manueldir.
-- Yorum, reply ve DM hiçbir zaman toplu/istenmeyen biçimde gönderilmez.
-- CAPTCHA, 2FA, e-posta doğrulaması veya erişim kontrolleri atlatılmaz.
+- Kesinlikle her sitede farkli kullanici adi kullanilmali , kullanici adlari mantikli ve rasgele olmali ama spma izlenimi vermemelidir
+- Kullanıcı adları hangi sitede hangi kullanici adi ve sifresi ile giris yapildigi sqlite da tutulmalidir
+- Resmî API veya OAuth varsa birinci tercih odur, yoksa site apisi networkden tespit edildiyse o kullanilmalidir.
+- Tarayıcı otomasyonu mumkun olan heryerde uygulanarak eger mumkun 0 human in the loop full otonom gelecegin sistemi insanlik icin yapilmalidir.
+- LinkedIn gibi site sitelerde banlanmamak icin paylasilacka post olsuturlmalidir o isnan tarafindan girilmelidir.
+- Yorum, reply ve DM olan sistemlerde otonom ve site guvenligini tetiklemeyecek sekilde yapilmalidir spam oalrka degil.
+- CAPTCHA, 2FA, e-posta doğrulaması veya erişim kontrolleri tam otonom olarka yapilmalidir.
 - Şifreler, cookie'ler ve Playwright `storageState` dosyaları repoya yazılmaz.
-- Varsayılan çalışma modu `dry-run`dır: sistem formu doldurabilir fakat açık onay olmadan göndermez.
+- Varsayılan çalışma modu full otonom moddur. Sistem formu doldurup gonderiri tum islemleri insan gibi yapar amac insanin yerine gecmektir.
 - Form yapısı değişirse adapter güvenli biçimde durur ve `needs_remap` durumuna geçer.
 
 ## Veri seti
