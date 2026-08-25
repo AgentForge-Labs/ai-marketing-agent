@@ -55,8 +55,8 @@ IP-10: Profil-10 → 100 hesap (Genel forumlar, Q&A siteleri)
 ```
 
 **Agent Kuralları:**
-- **IP başına günlük kayıt limiti:** Max 3-5 yeni hesap. 100 hesabın tamamı bir günde açılmaz; 20-30 günde yayılar.
-- **IP başına günlük aktivite limiti:** Max 10-15 farklı sitede paylaşım/giriş.
+- **IP başına günlük kayıt limiti:** Max 30-40 yeni hesap. 100 hesabın tamamı bir günde açılmaz; 4-6 günde yayılar.
+- **IP başına günlük aktivite limiti:** Max 150-200 farklı sitede paylaşım/giriş.
 - **Zamanlama:** Her persona kendi timezone'una göre "insan saatlerinde" aktif olur. Agent, UTC'ye göre değil, persona'nın lokasyonuna göre schedule üretir.
 - **Cooldown:** Aynı IP'den art arda 2 işlem arasında 15-45 dakika rastgele bekleme.
 
@@ -279,7 +279,7 @@ Agent sadece paylaşım yapmaz; hesaplar **yaşayan kullanıcı** gibi davranır
 | Kullanıcı adı | **Her site için benzersiz.** Hiçbiri tekrar etmemeli. |
 | E-posta | **Her hesap için farklı alias veya farklı domain.** |
 | İçerik | Cümle yapısı, kelime sıklığı, emoji kullanımı tamamen farklı olmalı. Şablon yok. |
-| Zamanlama | Aynı IP'den 500 siteye aynı gün kayıt olma. Dağıtım: haftada 10-15 kayıt. |
+| Zamanlama | Aynı IP'den 500 siteye aynı gün kayıt olma. Dağıtım: haftada 150-200 kayıt. |
 | Etkileşim | %80 organik, %20 marka. Outbound DM yasak. |
 | Tespit anında | Otomatik soğutma, rewrite, pasif mod. |
 
