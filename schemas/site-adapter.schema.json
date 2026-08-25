@@ -333,8 +333,10 @@
             "browser_auto",
             "browser_with_submit_approval",
             "api_with_approval",
-            "api_auto"
-          ]
+            "api_auto",
+            "auto_full"
+          ],
+          "description": "auto_full: Autonomous Decision Engine'in risk skoruna göre tam otomatik çalıştırdığı moddur (bkz. docs/03); runner yürütme kanalını (browser/api) kendisi seçer."
         },
         "notes": {
           "type": "string"
@@ -567,7 +569,8 @@
             "browser_auto",
             "browser_with_submit_approval",
             "api_with_approval",
-            "api_auto"
+            "api_auto",
+            "auto_full"
           ]
         },
         "allowedActions": {

@@ -152,7 +152,12 @@ Dizinlerin çoğu submission sonrası e-posta onayı ister. Bu adım tamamlanmad
 "emailVerification": {
   "kind": "email",
   "execution": "auto_full",
-  "mailboxRef": "vault://sites/<site-id>/<persona>/inbox",
+  "mailbox": {
+    "protocol": "imap",
+    "mailboxRef": "vault://sites/<site-id>/<persona>/inbox",
+    "processMode": "clickLink",
+    "markProcessed": true
+  },
   "timeout": 900
 }
 ```
