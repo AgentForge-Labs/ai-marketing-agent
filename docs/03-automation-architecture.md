@@ -59,7 +59,7 @@ sites/<site-id>/<flow>/<version>/
   metadata.json
 ```
 
-Ekran görüntüsü tek başına otomasyon kaynağı değildir. `form.json`, erişilebilir isimler, alan tipi, zorunluluk, seçenekler ve validation bilgilerini taşır.
+Ekran görüntüsü tek başına otomasyon kaynağı değildir. `form.json`, erişilebilir isimler, alan tipi, zorunluluk, seçenekler ve validation bilgilerini taşır; şeması [`schemas/form.schema.json`](../schemas/form.schema.json) dosyasındaki sözleşmedir. Recorder çıktısı bu şemaya uymayan hiçbir adapter devreye alınmaz.
 
 ### Adapter compiler
 
@@ -110,6 +110,23 @@ Eylem modları:
 
 Comment, reply, review, DM, PR pitch ve marketplace yayınları varsayılan olarak otomatik modda olamaz.
 
+### E-posta doğrulama akışı
+
+Dizinlerin çoğu submission sonrası e-posta onayı ister. Bu adım tamamlanmadan işlem `published` sayılmaz; `submitted` durumunda bekler. Adapter'da flows altında `emailVerification` akışı tanımlanır:
+
+```json
+"emailVerification": {
+  "kind": "email",
+  "execution": "manual_only",
+  "mailboxRef": "vault://sites/<site-id>/<persona>/inbox"
+}
+```
+
+- Runner gelen kutusunu okumaz; görev kuyruğunda insana hatırlatma üretir.
+- Doğrulama bağlantısına tıklama her zaman insan tarafından yapılır.
+- Başarı, listing URL'sinin görünmesiyle iki sinyal kuralına göre doğrulanır ve audit kaydına yazılır.
+- E-posta doğrulaması tamamlanmamış listing'ler raporlamada ayrı tutulur.
+
 ## Form fingerprint ve drift
 
 Fingerprint şu normalize edilmiş bilgilerin hash'idir:
@@ -136,6 +153,53 @@ Başarı tek bir toast mesajına bağlanmamalıdır. İki veya daha fazla sinyal
 
 ```text
 <product-id>:<site-id>:<operation>:<content-version>
+```
+
+## Audit ve idempotency deposu
+
+Audit, idempotency ve politika kayıtları tek dosyalık SQLite veritabanında tutulur. Dosya repoya girmez; runner ile aynı makinede veya yedeklenen bir veri klasöründe durur.
+
+Kurallar:
+
+- Tablolar append-only'dir. `UPDATE` ve `DELETE` yapılmaz; düzeltme yeni bir event satırıdır.
+- Şifre, token, cookie veya hassas form değeri yazılmaz.
+- Runner her submit öncesi idempotency anahtarını `PRIMARY KEY` üzerinden kontrol eder; aynı anahtar için ikinci submit denemesi fail-closed durur.
+- WAL modu açık olur; düzenli olarak okunabilir dışa aktarım (CSV/JSONL) üretilir.
+
+Minimum tablo seti:
+
+```sql
+CREATE TABLE submissions (
+  idempotency_key  TEXT PRIMARY KEY,   -- <product-id>:<site-id>:<operation>:<content-version>
+  product_id       TEXT NOT NULL,
+  site_id          TEXT NOT NULL,
+  operation        TEXT NOT NULL,      -- register | login | submitListing | post | comment | dm | emailVerification
+  content_version  TEXT NOT NULL,
+  status           TEXT NOT NULL CHECK (status IN
+                     ('dry_run','awaiting_approval','submitted','email_verification_pending',
+                      'published','ambiguous','failed','needs_remap')),
+  listing_url      TEXT,
+  approved_by      TEXT,
+  approved_at      TEXT,
+  created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE audit_log (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  occurred_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  idempotency_key  TEXT REFERENCES submissions(idempotency_key),
+  event            TEXT NOT NULL,      -- preflight | policy_check | dry_run | approval | submit | success_assertion | drift_detected
+  detail_json      TEXT NOT NULL       -- maskelenmiş yapısal detay
+);
+
+CREATE TABLE policy_checks (
+  site_id          TEXT NOT NULL,
+  checked_at       TEXT NOT NULL,
+  source_url       TEXT NOT NULL,
+  execution        TEXT NOT NULL,
+  result           TEXT NOT NULL,      -- pass | stale | violation
+  PRIMARY KEY (site_id, checked_at)
+);
 ```
 
 ## Oturum ve secret yönetimi

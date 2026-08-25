@@ -57,6 +57,10 @@
             {
               "kind": "label",
               "name": "Website"
+            },
+            {
+              "kind": "testId",
+              "value": "listing-website-input"
             }
           ]
         }
@@ -77,6 +81,17 @@
         {
           "kind": "text",
           "matches": "submitted successfully"
+        }
+      ]
+    },
+    "emailVerification": {
+      "kind": "email",
+      "execution": "manual_only",
+      "mailboxRef": "vault://sites/example-directory/brand/inbox",
+      "success": [
+        {
+          "kind": "url",
+          "matches": "/listing/"
         }
       ]
     }

@@ -21,14 +21,18 @@
       "required": [
         "kind"
       ],
+      "description": "kind'e göre beklenen alanlar: role -> role (+name); label, placeholder, name, id, testId, text -> value; css -> value (kısa ve bağlama alınmış). Öncelik sırası: role+name > label > placeholder > stabil name/id/testId > kısa CSS fallback.",
       "properties": {
         "kind": {
+          "description": "testId data-testid benzeri test kimliği, text görünür metin eşleşmesidir.",
           "enum": [
             "role",
             "label",
             "placeholder",
             "name",
             "id",
+            "testId",
+            "text",
             "css"
           ]
         },
@@ -46,10 +50,17 @@
     "flow": {
       "type": "object",
       "required": [
-        "execution",
-        "entryUrl"
+        "execution"
       ],
+      "description": "kind varsayılan olarak 'web'dir. kind=email ise akış site içi bir form değil, doğrulama e-postasının manuel kutudan takibidir (ör. emailVerification).",
       "properties": {
+        "kind": {
+          "enum": [
+            "web",
+            "email"
+          ],
+          "description": "email: submit sonrası e-posta doğrulama gibi site dışı manuel adım."
+        },
         "execution": {
           "enum": [
             "manual_only",
@@ -62,6 +73,10 @@
         "entryUrl": {
           "type": "string",
           "format": "uri"
+        },
+        "mailboxRef": {
+          "type": "string",
+          "description": "vault://... biçiminde izlenecek gelen kutusu referansı; yalnızca kind=email için geçerlidir."
         },
         "formFingerprint": {
           "type": "string"
@@ -125,7 +140,53 @@
             }
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "kind": {
+                  "const": "email"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "entryUrl"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "email"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "mailboxRef"
+            ],
+            "not": {
+              "anyOf": [
+                { "required": ["entryUrl"] },
+                { "required": ["fields"] },
+                { "required": ["submit"] },
+                { "required": ["formFingerprint"] }
+              ]
+            }
+          }
+        }
+      ]
     }
   },
   "properties": {
@@ -230,6 +291,7 @@
     },
     "flows": {
       "type": "object",
+      "description": "Anahtarlar flow adıdır: register, login, submitListing, post, comment, dm, emailVerification vb. emailVerification her zaman kind=email tanımlanır.",
       "additionalProperties": {
         "$ref": "#/$defs/flow"
       }

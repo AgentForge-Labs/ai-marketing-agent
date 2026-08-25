@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/form.schema.json",
+  "title": "Recorded Form Contract",
+  "description": "Human recorder tarafından üretilen form.json dosyasının sözleşmesi. Bu dosya sitenin o anki form yapısının normalize edilmiş, değer içermeyen haritasıdır. Şifre, token, CSRF ve kişisel veri asla bu dosyaya yazılmaz.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "siteId",
+    "version",
+    "capturedAt",
+    "entryUrl",
+    "fingerprint",
+    "fields",
+    "submit"
+  ],
+  "$defs": {
+    "locator": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "description": "kind'e göre beklenen alanlar: role -> role (+name); label, placeholder, name, id, testId, text -> value; css -> value (kısa ve bağlama alınmış). Öncelik sırası: role+name > label > placeholder > stabil name/id/testId > kısa CSS fallback.",
+      "properties": {
+        "kind": {
+          "description": "testId data-testid benzeri test kimliği, text görünür metin eşleşmesidir.",
+          "enum": [
+            "role",
+            "label",
+            "placeholder",
+            "name",
+            "id",
+            "testId",
+            "text",
+            "css"
+          ]
+        },
+        "role": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "fieldOption": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "string",
+          "description": "Forma gönderilen ham değer."
+        },
+        "label": {
+          "type": "string",
+          "description": "Kullanıcıya görünen metin."
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": [
+        "name",
+        "type",
+        "locators"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Alanın stabil iş anahtarı; adapter'daki valueFrom referansları bu anahtara bağlanır."
+        },
+        "accessName": {
+          "type": "string",
+          "description": "Alanın erişilebilir adı (accessible name)."
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "text",
+            "email",
+            "password",
+            "textarea",
+            "number",
+            "tel",
+            "url",
+            "date",
+            "time",
+            "search",
+            "range",
+            "color",
+            "checkbox",
+            "radio",
+            "select",
+            "multiselect",
+            "file",
+            "hidden",
+            "custom"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "sensitive": {
+          "type": "boolean",
+          "default": false,
+          "description": "true ise alanın değeri screenshot, log ve trace çıktılarında maskelenir. password ve hidden alanlarında true olmalıdır."
+        },
+        "locators": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/locator"
+          }
+        },
+        "options": {
+          "type": "array",
+          "description": "Yalnızca select, multiselect ve radio için. valueFrom ile seçilecek değerin options içinde bulunması doğrulanır.",
+          "items": {
+            "$ref": "#/$defs/fieldOption"
+          }
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "minLength": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxLength": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            },
+            "step": {
+              "type": "number"
+            },
+            "message": {
+              "type": "string",
+              "description": "Sitenin kendi validation hata mesajı; dry-run karşılaştırmasında kullanılır."
+            }
+          }
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "password",
+                  "hidden"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "sensitive"
+            ],
+            "properties": {
+              "sensitive": {
+                "const": true
+              }
+            },
+            "not": {
+              "anyOf": [
+                { "required": ["defaultValue"] },
+                { "required": ["options"] }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "siteId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "entryUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "form": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "Form action değeri; fingerprint'e ham haliyle girer."
+        },
+        "method": {
+          "enum": [
+            "get",
+            "post",
+            "none"
+          ]
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "Normalize edilmiş form yapısının hash'i; site-adapter'daki flows.*.formFingerprint değeri bu hash ile eşleşmelidir."
+    },
+    "fields": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/field"
+      }
+    },
+    "submit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "locator"
+      ],
+      "properties": {
+        "locator": {
+          "$ref": "#/$defs/locator"
+        },
+        "textContent": {
+          "type": "string"
+        },
+        "requiresApproval": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Recorder'ın insan notu: CAPTCHA varlığı, çok adımlı form yapısı, anti-bot uyarıları vb. Çalıştırma mantığı bu notlara bağlanmaz."
+    }
+  }
+}

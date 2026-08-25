@@ -14,7 +14,7 @@
 
 - Playwright codegen'i keşif başlangıcı olarak kullan.
 - Semantik locator'ları recorder formatına dönüştür.
-- Sanitized form schema ve fingerprint üret.
+- Sanitized form şemasını (`schemas/form.schema.json` sözleşmesine uygun `form.json`) ve fingerprint'i üret.
 - `before` ve `filled-redacted` screenshot'larını üret.
 - Submit varsayılan olarak kapalı olsun.
 
