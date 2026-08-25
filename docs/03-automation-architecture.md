@@ -25,6 +25,22 @@ Kaynaklar:
 - https://playwright.dev/docs/codegen
 - https://playwright.dev/docs/auth
 
+## Runner stack
+
+| Katman | Seçim | Not |
+|---|---|---|
+| Dil/runtime | TypeScript + Node.js LTS | Playwright ekosistemiyle aynı dil; adapter tipleri derleme anında doğrulanır |
+| Tarayıcı bağlantısı | Playwright `chromium.connectOverCDP` | Harici Chromium tabanlı tarayıcılara CDP üzerinden bağlanılır; vanilla Chromium fallback olarak kalır |
+| Profil sağlayıcı | MultiLogin (opsiyonel provider) | Site/hesap başına tek stabil profil: her login aynı sanal cihazdan gelir, tekrarlayan "yeni cihaz" doğrulamaları azalır. Local API ile profil başlatılır, dönen CDP portuna bağlanılır |
+| Paralellik | Worker havuzu (varsayılan 10 slot) + SQLite `jobs` tablosu | Paralellik yataydır: 10 worker = 10 farklı site eşzamanlı. Aynı sitede eşzamanlılık 1'dir (`limits.maxConcurrency`) |
+| Adapter compiler | Saf fonksiyon (TS) | Girdiden eylem listesi üretir; tarayıcı açılmadan unit test edilir |
+
+### Paralel çalışma modeli
+
+- Worker havuzu aynı anda en fazla N siteyi işler; her worker bir profil üzerinde tek job çalıştırır.
+- Job sahipliği `jobs` tablosundaki lease alanlarıyla yönetilir; worker çökerse lease süresi dolunca job yeniden kuyruğa alınır.
+- MultiLogin entegrasyonu `BrowserProvider` arayüzünün arkasında durur: `launch()` (vanilla) ve `connectOverCDP(port)` (MultiLogin) aynı arayüzü uygular; flow tanımı hangi sağlayıcının kullanıldığını bilmez.
+
 ## Bileşenler
 
 ### Channel importer
@@ -200,7 +216,21 @@ CREATE TABLE policy_checks (
   result           TEXT NOT NULL,      -- pass | stale | violation
   PRIMARY KEY (site_id, checked_at)
 );
+
+CREATE TABLE jobs (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  flow_ref         TEXT NOT NULL,      -- <site-id>:<flow>
+  idempotency_key  TEXT REFERENCES submissions(idempotency_key),
+  status           TEXT NOT NULL CHECK (status IN
+                     ('queued','leased','running','done','failed','needs_remap','blocked_policy')),
+  leased_by        TEXT,
+  leased_at        TEXT,
+  finished_at      TEXT,
+  error            TEXT
+);
 ```
+
+`jobs` tablosu operasyonel kuyruktur ve güncellenebilir; append-only kural `submissions`, `audit_log` ve `policy_checks` için geçerlidir. Worker bir job'ı alırken `status='leased'` + `leased_by`/`leased_at` yazar; lease süresi dolmuş `leased` kayıtları yeniden `queued` yapılır.
 
 ## Oturum ve secret yönetimi
 

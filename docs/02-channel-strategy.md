@@ -99,3 +99,18 @@ Minimum takip alanları:
 - demo/trial/conversion
 - güncelleme veya yenileme tarihi
 
+## Skor geri besleme döngüsü
+
+Ölçüm verisi kanal sırasını günceller; formül tek seferlik değil, haftalık yeniden hesaplanır.
+
+Kurallar:
+
+| Sinyal | Etki |
+|---|---|
+| Listing 90 gündür yayında ve 0 referral session | Kanal skoru ×0,5, öncelik bir seviye düşer (ör. P2 → P3) |
+| İlk doğrulanmış signup | Kanal önceliği bir seviye yükselir |
+| Spam şikayeti veya politika ihlali bildirimi | Kanal dondurulur, insan incelemesine alınır |
+| Form/policy sürekli `needs_remap` (3 kez üst üste) | Operasyon maliyeti faktörü yükseltilir, kanal geri plana atılır |
+
+Değişiklikler kanal başına geçmişte saklanır; skor güncellemeleri hangi veriyle tetiklendiğini kaydeder. Böylece insan inceleme zamanı conversion üreten kanallara otomatik kayar.
+
