@@ -41,13 +41,21 @@
   },
   "retry": {
     "maxAttempts": 3,
-    "backoffSeconds": [300, 1800, 7200],
-    "retryOn": ["timeout", "networkError", "rateLimited"]
+    "backoffSeconds": [
+      300,
+      1800,
+      7200
+    ],
+    "retryOn": [
+      "timeout",
+      "networkError",
+      "rateLimited"
+    ]
   },
   "captcha": {
     "policy": "abort_and_notify",
     "notifyChannelRef": "telegram://marketing-agent/alerts",
-    "maxHumanSolvesPerDay": 5
+    "maxHumanSolvesPerDay": 0
   },
   "flows": {
     "register": {
@@ -59,32 +67,54 @@
           "valueFrom": "identity.brand.email",
           "fieldType": "email",
           "locators": [
-            { "kind": "label", "name": "Work email" },
-            { "kind": "css", "value": "input[name='email']" }
+            {
+              "kind": "label",
+              "name": "Work email"
+            },
+            {
+              "kind": "css",
+              "value": "input[name='email']"
+            }
           ]
         },
         {
           "valueFrom": "vault://sites/aistack-directory/brand/password",
           "fieldType": "password",
           "locators": [
-            { "kind": "label", "name": "Password" }
+            {
+              "kind": "label",
+              "name": "Password"
+            }
           ]
         },
         {
           "valueFrom": "product.name",
           "fieldType": "text",
           "locators": [
-            { "kind": "label", "name": "Company" }
+            {
+              "kind": "label",
+              "name": "Company"
+            }
           ]
         }
       ],
       "submit": {
-        "locator": { "kind": "role", "role": "button", "name": "Create account" },
+        "locator": {
+          "kind": "role",
+          "role": "button",
+          "name": "Create account"
+        },
         "requiresApproval": false
       },
       "success": [
-        { "kind": "url", "matches": "/dashboard" },
-        { "kind": "text", "matches": "verify your email" }
+        {
+          "kind": "url",
+          "matches": "/dashboard"
+        },
+        {
+          "kind": "text",
+          "matches": "verify your email"
+        }
       ]
     },
     "submitListing": {
@@ -99,15 +129,24 @@
               "valueFrom": "product.name",
               "fieldType": "text",
               "locators": [
-                { "kind": "label", "name": "Product name" },
-                { "kind": "testId", "value": "listing-name-input" }
+                {
+                  "kind": "label",
+                  "name": "Product name"
+                },
+                {
+                  "kind": "testId",
+                  "value": "listing-name-input"
+                }
               ]
             },
             {
               "valueFrom": "product.website",
               "fieldType": "text",
               "locators": [
-                { "kind": "label", "name": "Website" }
+                {
+                  "kind": "label",
+                  "name": "Website"
+                }
               ]
             },
             {
@@ -115,15 +154,25 @@
               "fieldType": "textarea",
               "maxLength": 120,
               "locators": [
-                { "kind": "placeholder", "value": "One-line pitch" }
+                {
+                  "kind": "placeholder",
+                  "value": "One-line pitch"
+                }
               ]
             }
           ],
           "submit": {
-            "locator": { "kind": "role", "role": "button", "name": "Next step" },
+            "locator": {
+              "kind": "role",
+              "role": "button",
+              "name": "Next step"
+            },
             "requiresApproval": false
           },
-          "wait": { "kind": "text", "matches": "Tell us more" }
+          "wait": {
+            "kind": "text",
+            "matches": "Tell us more"
+          }
         },
         {
           "name": "details",
@@ -133,8 +182,17 @@
               "fieldType": "richtext",
               "maxLength": 1000,
               "locators": [
-                { "kind": "css", "value": "[contenteditable='true'].editor" },
-                { "frame": ["#editor-iframe"], "kind": "css", "value": "body.editor-frame" }
+                {
+                  "kind": "css",
+                  "value": "[contenteditable='true'].editor"
+                },
+                {
+                  "frame": [
+                    "#editor-iframe"
+                  ],
+                  "kind": "css",
+                  "value": "body.editor-frame"
+                }
               ]
             },
             {
@@ -142,7 +200,10 @@
               "fieldType": "select",
               "optionsValueFrom": "taxonomy.aistack.categories",
               "locators": [
-                { "kind": "label", "name": "Category" }
+                {
+                  "kind": "label",
+                  "name": "Category"
+                }
               ]
             },
             {
@@ -150,23 +211,39 @@
               "fieldType": "multiselect",
               "optionsValueFrom": "taxonomy.aistack.integrations",
               "locators": [
-                { "kind": "label", "name": "Works with" }
+                {
+                  "kind": "label",
+                  "name": "Works with"
+                }
               ]
             },
             {
               "valueFrom": "product.pricing.hasFreeTier",
               "fieldType": "checkbox",
-              "condition": { "field": "product.category.primary", "equals": "ai-tools" },
+              "condition": {
+                "field": "product.category.primary",
+                "equals": "ai-tools"
+              },
               "locators": [
-                { "kind": "label", "name": "Has a free plan" }
+                {
+                  "kind": "label",
+                  "name": "Has a free plan"
+                }
               ]
             }
           ],
           "submit": {
-            "locator": { "kind": "role", "role": "button", "name": "Next step" },
+            "locator": {
+              "kind": "role",
+              "role": "button",
+              "name": "Next step"
+            },
             "requiresApproval": false
           },
-          "wait": { "kind": "selector", "matches": "#asset-upload" }
+          "wait": {
+            "kind": "selector",
+            "matches": "#asset-upload"
+          }
         },
         {
           "name": "assets",
@@ -176,7 +253,10 @@
               "fieldType": "file",
               "uploadRef": "vault://assets/logo.png",
               "locators": [
-                { "kind": "css", "value": "input[type='file'][accept*='image'][name='logo']" }
+                {
+                  "kind": "css",
+                  "value": "input[type='file'][accept*='image'][name='logo']"
+                }
               ]
             },
             {
@@ -184,20 +264,36 @@
               "fieldType": "file",
               "uploadRef": "vault://assets/screenshots/main.png",
               "locators": [
-                { "kind": "css", "value": "input[type='file'][name='screenshot']" }
+                {
+                  "kind": "css",
+                  "value": "input[type='file'][name='screenshot']"
+                }
               ]
             }
           ],
           "submit": {
-            "locator": { "kind": "role", "role": "button", "name": "Submit listing" },
+            "locator": {
+              "kind": "role",
+              "role": "button",
+              "name": "Submit listing"
+            },
             "requiresApproval": false
           },
-          "wait": { "kind": "url", "matches": "/submission/" }
+          "wait": {
+            "kind": "url",
+            "matches": "/submission/"
+          }
         }
       ],
       "success": [
-        { "kind": "url", "matches": "/listing/" },
-        { "kind": "text", "matches": "is live" }
+        {
+          "kind": "url",
+          "matches": "/listing/"
+        },
+        {
+          "kind": "text",
+          "matches": "is live"
+        }
       ]
     },
     "emailVerification": {
@@ -212,7 +308,10 @@
         "markProcessed": true
       },
       "success": [
-        { "kind": "url", "matches": "/listing/" }
+        {
+          "kind": "url",
+          "matches": "/listing/"
+        }
       ]
     }
   },

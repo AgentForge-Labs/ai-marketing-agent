@@ -1,281 +1,261 @@
-```markdown
-# Viral AI Marketing Agent — Operasyonel Kurallar ve Teknik Doküman
+# Channel and Content Strategy — 0-HITL
 
-## 1. Genel Prensip
+## 1. General principle
 
-Tam otonom AI marketing agent, 10 adet IP adresi üzerinden 1000+ farklı platformda bağımsız ve birbirinden kopuk hesaplarla viral içerik dağıtımı yapar. Her hesap gerçek bir kullanıcı gibi davranır, hiçbir korelasyon izi bırakmaz. 
+The system is a fully autonomous marketing agent that plans and executes distribution across a ranked catalogue of 1,000+ channels. There is no routine human approval step. Every action is resolved automatically as `auto_full`, `auto_with_verification`, or `auto_quarantine` by the Policy Registry and Autonomous Decision Engine.
 
-**Temel Kimlik Prensibi:** Arka planda (login, session, credential) tam izolasyon ve benzersizlik sağlanırken; ön planda (kamuya açık yazar adı, marka görünürlüğü) tutarlı bir marka kimliği inşa edilir. Şeffaflık ve disclosure (ürün tanıtımı/reklam) kurallarına azami uyulur.
+The objective is not blind volume. The objective is to select the highest-value eligible channels for each product/campaign, publish useful channel-native content, measure outcomes, and continuously update the ranking.
 
----
+## 2. Channel classes
 
-## 2. Teknik Altyapı ve İzolasyon
+The catalogue includes directories, review/comparison sites, social networks, communities, developer platforms, marketplaces, newsletters, PR/media, partner ecosystems, and other long-tail distribution channels.
 
-| Bileşen | Kural |
-|---|---|
-| **IP Havuzu** | 10 adet statik IP. Her IP'ye 1 adet Multilogin profili sabit atanır. IP değişimi yasaktır (hesap güvenliği sinyali). |
-| **Multilogin Profilleri** | 10 profil. Her profil farklı OS, ekran çözünürlüğü, font seti, timezone ve hardware fingerprint ile kalıcı yapılandırılır. |
-| **Tarayıcı Fingerprint** | Canvas, WebGL, audio context, hardware concurrency her profilde farklı ve değiştirilemez. |
-| **Cookie & Session** | Her profil kendi cookie jar'ını kalıcı olarak korur. Cross-domain tracking tamamen izole edilir. |
-| **Credential Vault** | **Kesin İzolasyon:** Her site/hesap için benzersiz login username, şifre ve API token üretilir. Aynı login kimliği (username/password) asla farklı sitelerde tekrar kullanılmaz. |
-| **IP Başına Hedef** | Her IP'den 500-1000 siteye erişim kabul edilir; ancak aktivite dağılımı operasyonel kurallara göre yönetilir. |
+Each channel record must be normalized to include at least:
 
----
+- canonical site/domain;
+- channel class;
+- current homepage/register/login/submit URLs;
+- URL confidence and last preflight time;
+- official API/OAuth availability;
+- allowed operations;
+- disclosure rules;
+- account/multi-account policy;
+- rate limits and quotas;
+- auth/verification requirements;
+- adapter family;
+- automation confidence;
+- channel score;
+- last policy review.
 
-## 3. Kimlik ve Persona Fabrikası
+The source dataset's `Human Review` field is research metadata. It does not create a human approval workflow. If runtime policy cannot justify autonomous execution, the action becomes `auto_quarantine`.
 
-Hesap kimlikleri **"Arka Plan (Login)"** ve **"Ön Plan (Public)"** olarak ikiye ayrılır.
+## 3. Channel selection
 
-| Parametre | Kural | Açıklama |
-|---|---|---|
-| **Login Username (Arka Plan)** | **Her site için kesinlikle benzersiz.** | Bir sitede sızıntı, spam flag veya ban olursa diğer 999 hesabın etkilenmemesi (cross-ban riskinin sıfırlanması) için sistem giriş bilgileri tamamen izole edilmelidir. |
-| **Şifre & Token** | **Benzersiz ve Rastgele.** | Her hesap için 16+ karakter rastgele şifre ve mümkünse 2FA / API token. Password manager/vault kullanımı zorunludur. |
-| **Public Display Name (Ön Plan)** | **Tutarlı Marka / Yazar Adı.** | Kamuya görünen yazar adı (örn. kurucu ismi veya marka adı) tüm sitelerde **aynı** tutulabilir. Bu, marka bilinirliği, güvenilirlik ve SEO otoritesi (E-E-A-T) inşası için stratejik olarak tercih edilir. |
-| **Bio / Profil Arka Planı** | **Farklılaştırılmış.** | Public isim aynı olsa bile, bio metinleri, ilgi alanları ve mesleki geçmişler platformun kitlesine göre uyarlanır (Birebir kopya bio spam sinyali verir). |
-| **E-posta** | **Her hesap için farklı alias.** | Catch-all wildcard ile yönetilir. `prefix@domain.com` formatında. Tek domain üzerinden alias bile olsa sistem farklı adresler olarak görür. |
-| **Avatar** | **Tutarlı veya AI Üretimi.** | Marka yüzü veya kurucu kullanılıyorsa aynı görsel (farklı crop/filter ile). Persona ise AI üretimi 1000+ benzersiz yüz. |
-| **Yazım stili (Voice)** | **Persona'ya veya Marka Tonuna Özgü.** | LLM prompt'una markanın kurumsal dili veya personanın karakter tanımı (teknik, hikaye anlatıcısı, şüpheci) eklenir. |
-
----
-
-## 4. E-posta Altyapısı
-
-1000 hesap için "az domain + catch-all wildcard" stratejisi uygulanır. 1000 ayrı domain yerine 5-10 domain alınıp her birinde catch-all aktif edilir. AI agent her kayıt için rastgele prefix üretir; tüm doğrulama mailleri tek merkezi inbox'a yönlendirilir.
-
-### Servis Seçenekleri
-
-| Servis | Maliyet | Özellik |
-|---|---|---|
-| **ForwardEmail Enhanced** | $3/ay | Sınırsız domain, sınırsız alias, API, 10GB depolama. **Önerilen.** |
-| **ImprovMX Premium** | $9/ay | 30 domain, 100 alias/domain, API, webhook, 180 günlük log. |
-| **Cloudflare Email Routing** | Ücretsiz | Catch-all destekler. Domain Cloudflare nameserver kullanmalı. |
-| **Self-hosted (Mailcow/Mail-in-a-Box)** | VPS ~$5-10/ay | Tam kontrol, hiçbir üçüncü taraf log tutmaz. |
-
-### Örnek Mimari
+The orchestrator ranks channels per campaign rather than simply processing rank 1 through 1000. Suggested score inputs:
 
 ```text
-[AI Agent] → rastgele prefix üretir (örn. "user123")
-      ↓
-[Domain Havuzu] → 5 domain (marka1.com, marka2.io, marka3.co, marka4.net, marka5.app)
-      ↓
-[Catch-All Forwarding] → *@domain.com → merkez@inbox.com
-      ↓
-[Doğrulama Okuyucu] → IMAP/API ile otomatik doğrulama linki tıklama
+channel_score =
+  buyer_intent
+  × product_fit
+  × audience_fit
+  × policy_confidence
+  × automation_reliability
+  × historical_conversion
+  × freshness
+  ÷ expected_cost
 ```
 
----
+P0/P1/P2/P3 remain useful bootstrap priors, but real performance data must override static assumptions over time.
 
-## 5. İçerik Stratejisi — Viral Motor
+## 4. Automatic execution hierarchy
 
-### Link ve Disclosure Politikası
-- **Doğrudan link paylaşımı minimize edilir.** Marka adı doğal dilde, bağlam içinde geçer.
-- Backlink veya SEO odaklı anchor text manipülasyonu yapılmaz.
-- **Şeffaflık (Disclosure):** FTC/yerel yasalara ve platform kurallarına uygun olarak, ürün tanıtımı veya affiliate içeriklerde `#ad`, `#sponsored` veya "Kendi ürünüm/deneyimim" gibi şeffaf ibareler kullanılır.
+For every eligible action:
 
-### İçerik Formatları
-| Format | Örnek |
-|---|---|
-| Problem → Çözüm | "3 aydır X problemi yaşıyordum, denemediğim yöntem kalmadı, en sonunda [Marka] ile çözdüm." |
-| Tartışma başlatma | "Sizce en iyi Y aracı hangisi? Ben [Marka]'yı denedim, şu özelliği çok farklı." |
-| Karşılaştırma | "[Rakip A] vs [Rakip B] vs [Marka] — şu senaryoda [Marka] daha mantıklı geldi." |
-| Soru | "[Marka] kullanan var mı? Şu özelliği nasıl buldunuz?" |
-| Deneyim | "Dün [Marka]'yı ilk kez denedim, beklediğimden farklı şeyler gördüm..." |
+1. official API/OAuth;
+2. documented partner/integration path;
+3. policy-compatible browser automation;
+4. autonomous quarantine.
 
-### İçerik Farklılaştırma Kuralı
-Aynı marka için üretilen 1000 içerikte **cümle yapısı, kelime sıklığı, emoji kullanımı tamamen farklı olmalıdır.**
+Automatic submit occurs only after:
 
-| Vektör | Farklılaştırma |
-|---|---|
-| **Cümle yapısı** | Kimi kısa ve net, kimi uzun hikaye. Kimi soruyla başlar, kimi iddia ile. |
-| **Emoji yoğunluğu** | 0'dan 5'e kadar rastgele veya persona voice'una göre sabit ama persona arasında farklı. |
-| **Teknik derinlik** | Kimi kullanıcı "basit ve güzel" der, kimi "API'sini inceledim, şu endpoint çok iyi" der. |
-| **Duygu tonu** | Heyecanlı, şüpheci, minnettar, tarafsız, esprili. Her persona bir ton seçer ve ona sadık kalır. |
+- policy pass;
+- adapter/schema validation;
+- identity/session validation;
+- content claim validation;
+- duplicate/idempotency check;
+- rate-limit check;
+- required disclosure injection;
+- pre-submit assertion.
 
----
+## 5. Persona and content model
 
-## 6. Zamanlama ve Operasyonel Kurallar
+The platform supports 1,000+ brand/campaign persona definitions. Personas vary voice, localization, technical depth, format, and topic emphasis while remaining anchored to verified product facts.
 
-| Parametre | Kural | Gerekçe |
-|---|---|---|
-| **Kayıt hızı** | **Aynı IP'den 500 siteye aynı gün kayıt olma.** Dağıtım: Haftada 10-15 kayıt. | Toplu kayıt bot tespitini ve IP'yi "hesap fabrikası" olarak işaretlenmesini tetikler. |
-| **Günlük aktivite limiti** | IP başına max 10-15 farklı sitede paylaşım/giriş. | Aynı IP'den 100+ siteye günlük erişim anomali olarak algılanır. |
-| **Zamanlama** | Her persona kendi timezone'una göre "insan saatlerinde" aktif olur. | Agent, UTC'ye göre değil, persona demografisine göre schedule üretir. |
-| **Cooldown** | Aynı IP'den art arda 2 işlem arasında 15-45 dakika rastgele bekleme. | Makine hızı yerine insan hızı simüle edilir. |
-| **Gaussian dağılım** | Paylaşımlar sabit saatte değil, Gaussian dağılımla rastgele zamanlarda yapılır. | Saat başı paylaşım pattern'i tespit edilir. |
+A persona is not a fabricated customer. Content must not invent personal experiences, testimonials, benchmark results, reviews, or credentials.
 
----
+Where a platform permits only one authorized account, multiple personas are content variants behind that account rather than covert extra accounts.
 
-## 7. Otonom Etkileşim (Yaşayan Hesap Simülasyonu)
+## 6. Content Core
 
-Agent sadece paylaşım yapmaz; hesaplar **yaşayan kullanıcı** gibi davranır:
+The Content Core receives:
 
-| Etkileşim | Kural |
-|---|---|
-| **Organik / Marka oranı** | %80 organik etkileşim (marka dışı), %20 marka içerik. | Sadece marka bahseden hesaplar tek amaçlı (shill) olarak işaretlenir. |
-| **Cross-etkileşim** | Persona, kendi ilgi alanındaki başka gönderilere yorum yapar. | Gerçek kullanıcılar sadece bir konuda konuşmaz. |
-| **Yorum takibi** | Paylaşılan gönderiye gelen yorumlara 2-24 saat içinde doğal yanıt. | Anında yanıt bot sinyalidir. |
-| **Upvote/like** | Diğer kullanıcıların içeriklerine rastgele etkileşim. | Sadece kendi gönderisini upvote'layan hesaplar tespit edilir. |
-| **DM politikası** | Outbound DM yasaktır. Gelen DM'lere persona voice'una uygun yanıt verilir. | Giden DM spam filtresini doğrudan tetikler. |
+- product profile;
+- campaign objective;
+- channel rules;
+- persona voice;
+- locale/timezone;
+- previous content corpus;
+- disclosure requirements;
+- CTA/link policy;
+- current campaign experiments.
 
----
+It outputs a versioned content artifact with:
 
-## 8. Anti-Tespit ve Anomali Yönetimi (Evasion Layer)
+- body/title/summary fields;
+- optional media/assets;
+- source facts;
+- disclosure markers;
+- semantic fingerprint;
+- UTM/tracking metadata;
+- policy classification;
+- content confidence.
 
-| Tespit Vektörü | Agent Önlemi |
-|---|---|
-| **Kullanıcı adı/Login korelasyonu** | Aynı login username asla tekrarlanmaz. Veritabanı cross-check yapılır. |
-| **İçerik fingerprint** | Aynı cümle kalıbı %1'den fazla kullanılmaz. LLM, her çıktıyı önceki 1000 içerikle karşılaştırır; benzerlik %20'yi geçerse rewrite eder. |
-| **IP yoğunluğu** | IP başına günlük limit aşılırsa agent o IP'yi 24 saat "soğutur". Başka IP'den devam eder. |
-| **Platform alarmı** | Bir hesap captcha veya kısıtlama alırsa, o IP'deki diğer hesaplar otomatik 48 saat pasife geçer. |
-| **Metin benzerliği** | Agent, ürettiği her içeriği internal corpus ile cross-check eder. |
+### Content diversity
 
----
+Similarity checking prevents repetitive spam and stale copy. Diversity is used to improve relevance and avoid duplicate content, not to hide coordinated manipulation.
 
-## 9. Kanal ve İçerik Yürütme Sınıfları
+The system should compare new output with recent tenant/channel/persona content and rewrite when similarity exceeds the configured threshold.
 
-### 1. Dizin ve Listing Siteleri
-En uygun deterministik otomasyon alanıdır.
-- Ürün adı, URL, tagline, açıklama, kategori, fiyat, logo ve screenshot alanları `product-profile.json`'dan doldurulur.
-- Aynı metin körlemesine her siteye basılmaz. Önceden onaylanmış kısa/orta/uzun açıklamalar ve kategoriye uygun varyantlar kullanılır.
-- Gönderim öncesi güncel form, ücret, backlink, yayın politikası ve mevcut listing kontrol edilir.
-- Başarı sonrasında listing URL'si ve UTM'li hedef URL kaydedilir.
+## 7. 0-HITL engagement bot
 
-### 2. Sosyal Ağlar
-- Kurucu odaklı, gerçek ve platforma özgü içerik kullanılır. Marka adı (Public Display Name) tutarlı tutulur.
-- Aynı içeriğin birebir cross-post edilmesi yerine format uyarlanır.
-- Resmî API varsa API tercih edilir.
-- Post, reply, comment, like ve DM için platforma özel izin matrisi uygulanır.
+The Engagement Bot is part of the autonomous execution loop.
 
-### 3. Topluluklar ve Yayın Platformları
-- Hesap önce doğal ve faydalı katkılarla oluşturulur.
-- Tanıtım, topluluk kuralları izin verdiğinde ve konuya doğrudan değer kattığında yapılır.
-- Kurucu hikâyesi, teknik rehber, benchmark, vaka çalışması ve öğrendiklerimiz formatları tercih edilir.
-- Otomasyon taslak ve araştırma seviyesinde kalabilir; publish/comment çoğunlukla insan onaylıdır.
+Allowed operations, subject to channel policy:
 
-### 4. DM, PR ve Partner Outreach
-- Toplu, kopya veya istenmeyen mesaj gönderilmez.
-- Her alıcı için neden ilgili olduğu kayıt altına alınır.
-- Opt-out talepleri merkezi suppression listesine eklenir ve tüm adapter'lar tarafından uygulanır.
-- PR pitch ve partner mesajları otomatik gönderimden önce insan tarafından okunur.
+- respond to comments on owned/brand content;
+- answer inbound product questions;
+- continue an existing relevant conversation;
+- respond to opted-in inbound DMs;
+- post clarification/update replies;
+- route commercial/support intent into the relevant workflow.
 
----
+The bot must not perform artificial amplification such as fake likes/upvotes, coordinated votes between controlled accounts, fabricated reviews, mass unsolicited DMs, or unrelated mass commenting.
 
-## 10. Platform Sınırları ve Yasaklar
-
-Politikalar zamanla değişebilir; her adapter sürümünde resmî kaynak ve son kontrol tarihi tutulur.
-
-| Platform | Kısıtlama | Kaynak |
-|---|---|---|
-| **LinkedIn** | Web sitesinde bot, crawler ve üçüncü taraf yazılımla post, mesaj, yorum ve benzeri otomasyonu yasaklar. Bu kanal için dışarıda taslak + manuel yayın modeli kullanılmalıdır. | https://www.linkedin.com/help/linkedin/answer/a1341387 |
-| **X (Twitter)** | Web sitesinin script ile otomasyonunu yasaklar; izin verilen otomasyonlarda resmî API ve açık kullanıcı rızası kurallarını uygular. | https://help.x.com/en/rules-and-policies/x-automation |
-| **Reddit** | Tekrarlanan veya istenmeyen toplu post, yorum, chat ve özel mesajları spam olarak değerlendirir. | https://support.reddithelp.com/hc/en-us/articles/360043504051-Spam |
-
----
-
-## 11. İçerik Kaynağı ve Ürün Profili
-
-Runtime içerik uydurmamalıdır. `product-profile.json` aşağıdaki onaylı varlıkları taşır:
-
-- 60/120 karakter tagline
-- 160/300/1.000 karakter açıklama
-- ICP ve use-case listesi
-- Fiyatlandırma özeti
-- Kategori ve anahtar kelimeler
-- Logo ve screenshot yolları
-- Kurucu bio'su (Tutarlı Public Display Name kaynağı)
-- Güvenlik ve gizlilik sayfaları
-- Entegrasyonlar
-- Sosyal kanıt ve doğrulanmış müşteri sonuçları
-
-Adapter alanları bu verileri `valueFrom` ile referans eder. Siteye özel yasal veya editoryal beyanlar ayrıca insan onayı gerektirir.
-
----
-
-## 12. Ölçüm ve UTM Yapısı
-
-Her yayın veya listing mümkünse şu UTM yapısını kullanır:
+Each engagement action runs:
 
 ```text
-utm_source=<site_id>
-utm_medium=directory|community|social|partner
-utm_campaign=<kampanya_id>
-utm_content=<content_variant_id>
+thread context
+  → intent classification
+  → policy/consent check
+  → persona/brand response generation
+  → claim + disclosure + similarity check
+  → rate-limit check
+  → automatic execution
+  → result assertion + audit
 ```
 
-### Minimum Takip Alanları
-- submitted/published zamanı
-- listing veya post URL'si
-- kullanılan içerik sürümü
-- onaylayan kişi
-- referral session ve signup
-- demo/trial/conversion
-- güncelleme veya yenileme tarihi
+## 8. Anti-detection / Evasion Layer
 
----
+`Evasion Layer` is the retained architecture name for anomaly-aware execution. Its purpose is to keep the autonomous system reliable and non-spammy, not to defeat platform controls.
 
-## 13. Skor Geri Besleme Döngüsü
+Signals include:
 
-Ölçüm verisi kanal sırasını günceller; formül tek seferlik değil, haftalık yeniden hesaplanır.
+- HTTP/API throttling;
+- repeated form failures;
+- session expiry;
+- CAPTCHA/security challenge;
+- account restriction;
+- form/DOM drift;
+- duplicate-content risk;
+- policy drift;
+- abnormal failure burst;
+- unexpected auth loops.
+
+Autonomous responses include:
+
+- lower concurrency;
+- cooldown;
+- stop affected adapter family;
+- refresh policy/preflight;
+- re-discover form structure;
+- rebuild adapter;
+- quarantine blocked operations.
+
+The layer must not circumvent bans, CAPTCHAs, authorization, security challenges, or moderation controls through identity/IP/fingerprint spoofing.
+
+## 9. Scheduling
+
+Scheduling is outcome- and policy-driven. Inputs include:
+
+- channel timezone and posting windows;
+- API quota;
+- explicit platform rate limits;
+- tenant campaign budget;
+- persona/account health;
+- content freshness;
+- recent outcome/conversion data;
+- cooldown state.
+
+The scheduler should avoid bursty duplicate behavior and must stop when a channel signals throttling or challenge state.
+
+## 10. Directories and listings
+
+Directories are strong candidates for `auto_full` when:
+
+- submission is allowed;
+- listing ownership is valid;
+- the form contract is current;
+- required fields map deterministically;
+- duplicate listing search succeeds;
+- post-submit outcome can be asserted.
+
+Typical flow:
 
 ```text
-nihai skor = temel önem × ICP uyumu × kanal güvenilirliği × politika uyumu × ölçülebilirlik ÷ operasyon maliyeti
+PREFLIGHT → SEARCH EXISTING LISTING → GENERATE CHANNEL COPY → FILL → SUBMIT → VERIFY → TRACK
 ```
 
-| Sinyal | Etki |
-|---|---|
-| Listing 90 gündür yayında ve 0 referral session | Kanal skoru ×0,5, öncelik bir seviye düşer (ör. P2 → P3) |
-| İlk doğrulanmış signup | Kanal önceliği bir seviye yükselir |
-| Spam şikayeti veya politika ihlali bildirimi | Kanal dondurulur, insan incelemesine alınır |
-| Form/policy sürekli `needs_remap` (3 kez üst üste) | Operasyon maliyeti faktörü yükseltilir, kanal geri plana atılır |
+## 11. Social and community channels
 
----
+Social/community automation remains 0-HITL, but only actions allowed by current platform policy are eligible for automatic execution. The runner does not replace an old approval queue with forced execution. Unsupported actions move to `auto_quarantine`.
 
-## 14. Ölçeklendirme ve Yaşam Döngüsü
+Typical eligible operations may include scheduled brand publishing through official APIs, replies on owned content, or other documented automation surfaces.
 
-| Modül | Fonksiyon |
-|---|---|
-| **Keşif** | Agent sürekli yeni platform ve alt dizin tarar. Yeni 100 site bulunduğunda mevcut 10 IP'ye yavaşça eklenir. |
-| **Hesap Yaşamı** | Eski hesaplar pasifleştirilmez. Profil fotoğrafı güncellenir, arada yeni etkileşim yapılır. |
-| **Ölüm Yönetimi** | Banlanan hesap ve IP `dead-pool` veritabanına kaydedilir. Aynı IP, şifre veya login username tekrar kullanılmaz. |
+## 12. Review platforms
 
----
+The agent may claim/update a legitimate vendor profile and invite real customers through permitted workflows. It must never create fabricated reviews, incentivize misleading reviews, or use controlled personas as customers.
 
-## 15. Veri Akışı (Otonom Döngü)
+## 13. Outreach and DM
+
+Outbound messaging requires an explicit allowed channel policy and applicable consent/legal basis. Mass unsolicited DM behavior is prohibited. Inbound and opted-in conversations may be handled autonomously by the Engagement Bot.
+
+## 14. UTM and attribution
+
+Every trackable destination should use deterministic campaign metadata:
+
+- `utm_source`
+- `utm_medium`
+- `utm_campaign`
+- `utm_content`
+- `channel_id`
+- `persona_id`
+- `content_id`
+- `execution_id`
+
+The analytics layer should track:
+
+- submitted/published/verified state;
+- listing/post URL;
+- impressions/clicks where available;
+- referral sessions;
+- signup/demo/trial events;
+- paid conversion;
+- channel-level CAC/ROI;
+- time-to-conversion;
+- execution reliability.
+
+## 15. Feedback loop
 
 ```text
-[Persona Engine] → 1000+ benzersiz login kimliği ve public persona üretir
+[Dataset + Product Profile]
         ↓
-[Content Core] → Her kimlik için marka bahsi geçen benzersiz içerik üretir
+[Policy + Preflight]
         ↓
-[Distribution Orchestrator] → IP/profil/schedule atar (haftada 10-15 kayıt kuralına uygun)
+[Channel Scoring]
         ↓
-[Multilogin + Proxy + Vault] → İzole session açar, benzersiz credential girer
+[Persona Engine + Content Core]
         ↓
-[Platform] → Paylaşım yapılır (link yok/minimum, marka doğal dilde, disclosure mevcut)
+[Autonomous Decision Engine]
         ↓
-[Engagement Bot] → Etkileşimleri izler, %80 organik / %20 marka oranında yanıt verir
+[Automatic API/Browser Submit]
         ↓
-[Evasion Layer] → Anomali varsa operasyonu durdurur, rewrite eder veya IP soğutur
+[Assertion + Audit]
         ↓
-[Loop] → 24/7 otonom devam eder
+[Engagement Bot]
+        ↓
+[Analytics + Conversion]
+        ↓
+[Channel Score Update / Next Best Action]
 ```
 
----
-
-## 16. Özet Tablo / Hızlı Referans
-
-| Senaryo | Kural |
-|---|---|
-| **10 IP, 1000 Site** | Kabul edilir. Ancak IP başına günlük aktivite sınırlandırılır. |
-| **Login Username** | **Her site için benzersiz.** Asla aynı giriş bilgisi kullanılmaz. |
-| **Public Display Name** | **Aynı olabilir.** Marka tutarlılığı ve SEO otoritesi için kamuya açık yazar/marka adı aynı tutulur. |
-| **E-posta** | **Her hesap için farklı alias.** Catch-all wildcard ile yönetilir. |
-| **Şifre / Token** | **Benzersiz.** Vault üzerinden yönetilir. |
-| **İçerik** | Cümle yapısı, kelime sıklığı, emoji kullanımı tamamen farklı olmalı. Şablon yok. |
-| **Zamanlama** | Aynı IP'den 500 siteye aynı gün kayıt olma. Dağıtım: haftada 10-15 kayıt. |
-| **Etkileşim** | %80 organik, %20 marka. Outbound DM yasak. |
-| **Tespit anında** | Otomatik soğutma, rewrite, pasif mod. |
-| **LinkedIn / X / Reddit** | Otomasyon yasak veya kısıtlı. Taslak + manuel model. |
-| **İçerik kaynağı** | `product-profile.json` referans alınır. Runtime uydurma yok. |
-| **Ölçüm** | UTM'li URL, haftalık skor geri besleme. |
-```
+This loop runs continuously without a human approval queue. `auto_quarantine` is the autonomous safety valve for anything that is not currently executable.

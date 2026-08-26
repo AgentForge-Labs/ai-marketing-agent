@@ -154,7 +154,8 @@
             },
             "requiresApproval": {
               "type": "boolean",
-              "description": "Yalnızca son adımın submit'inde false olabilir; ara adımlarda Next/Continue için false kullanılır."
+              "const": false,
+              "description": "0-HITL uyumluluk alanı; daima false. Ara/son adım submit kararı policy ve Autonomous Decision Engine tarafından verilir."
             }
           }
         },
@@ -328,15 +329,11 @@
         },
         "execution": {
           "enum": [
-            "manual_only",
-            "draft_only",
             "browser_auto",
-            "browser_with_submit_approval",
-            "api_with_approval",
             "api_auto",
             "auto_full"
           ],
-          "description": "auto_full: Autonomous Decision Engine'in risk skoruna göre tam otomatik çalıştırdığı moddur (bkz. docs/03); runner yürütme kanalını (browser/api) kendisi seçer."
+          "description": "0-HITL execution mode. browser_auto ve api_auto belirli transportu otomatik yürütür; auto_full Autonomous Decision Engine tarafından API/browser seçimi ve otomatik submit ile yürütülür. Approval/manual modları desteklenmez."
         },
         "notes": {
           "type": "string"
@@ -373,7 +370,9 @@
               "$ref": "#/$defs/locator"
             },
             "requiresApproval": {
-              "type": "boolean"
+              "type": "boolean",
+              "const": false,
+              "description": "0-HITL uyumluluk alanı; daima false. Ara/son adım submit kararı policy ve Autonomous Decision Engine tarafından verilir."
             }
           }
         },
@@ -440,48 +439,104 @@
         {
           "if": {
             "not": {
-              "required": ["kind"]
+              "required": [
+                "kind"
+              ]
             }
           },
           "then": {
             "anyOf": [
-              { "required": ["entryUrl"] },
-              { "required": ["steps"] }
+              {
+                "required": [
+                  "entryUrl"
+                ]
+              },
+              {
+                "required": [
+                  "steps"
+                ]
+              }
             ]
           }
         },
         {
           "if": {
             "properties": {
-              "kind": { "const": "web" }
+              "kind": {
+                "const": "web"
+              }
             },
-            "required": ["kind"]
+            "required": [
+              "kind"
+            ]
           },
           "then": {
             "anyOf": [
-              { "required": ["entryUrl"] },
-              { "required": ["steps"] }
+              {
+                "required": [
+                  "entryUrl"
+                ]
+              },
+              {
+                "required": [
+                  "steps"
+                ]
+              }
             ]
           }
         },
         {
           "if": {
             "properties": {
-              "kind": { "const": "email" }
+              "kind": {
+                "const": "email"
+              }
             },
-            "required": ["kind"]
+            "required": [
+              "kind"
+            ]
           },
           "then": {
-            "required": ["mailbox"],
+            "required": [
+              "mailbox"
+            ],
             "not": {
               "anyOf": [
-                { "required": ["entryUrl"] },
-                { "required": ["fields"] },
-                { "required": ["steps"] },
-                { "required": ["submit"] },
-                { "required": ["formFingerprint"] },
-                { "required": ["baseUrl"] },
-                { "required": ["requests"] }
+                {
+                  "required": [
+                    "entryUrl"
+                  ]
+                },
+                {
+                  "required": [
+                    "fields"
+                  ]
+                },
+                {
+                  "required": [
+                    "steps"
+                  ]
+                },
+                {
+                  "required": [
+                    "submit"
+                  ]
+                },
+                {
+                  "required": [
+                    "formFingerprint"
+                  ]
+                },
+                {
+                  "required": [
+                    "baseUrl"
+                  ]
+                },
+                {
+                  "required": [
+                    "requests"
+                  ]
+                }
               ]
             }
           }
@@ -489,20 +544,51 @@
         {
           "if": {
             "properties": {
-              "kind": { "const": "api" }
+              "kind": {
+                "const": "api"
+              }
             },
-            "required": ["kind"]
+            "required": [
+              "kind"
+            ]
           },
           "then": {
-            "required": ["baseUrl", "requests"],
+            "required": [
+              "baseUrl",
+              "requests"
+            ],
             "not": {
               "anyOf": [
-                { "required": ["entryUrl"] },
-                { "required": ["fields"] },
-                { "required": ["steps"] },
-                { "required": ["submit"] },
-                { "required": ["formFingerprint"] },
-                { "required": ["mailbox"] }
+                {
+                  "required": [
+                    "entryUrl"
+                  ]
+                },
+                {
+                  "required": [
+                    "fields"
+                  ]
+                },
+                {
+                  "required": [
+                    "steps"
+                  ]
+                },
+                {
+                  "required": [
+                    "submit"
+                  ]
+                },
+                {
+                  "required": [
+                    "formFingerprint"
+                  ]
+                },
+                {
+                  "required": [
+                    "mailbox"
+                  ]
+                }
               ]
             }
           }
@@ -564,14 +650,11 @@
         },
         "execution": {
           "enum": [
-            "manual_only",
-            "draft_only",
             "browser_auto",
-            "browser_with_submit_approval",
-            "api_with_approval",
             "api_auto",
             "auto_full"
-          ]
+          ],
+          "description": "0-HITL execution mode. browser_auto ve api_auto belirli transportu otomatik yürütür; auto_full Autonomous Decision Engine tarafından API/browser seçimi ve otomatik submit ile yürütülür. Approval/manual modları desteklenmez."
         },
         "allowedActions": {
           "type": "array",
@@ -648,10 +731,11 @@
     },
     "captcha": {
       "type": "object",
-      "description": "CAPTCHA politika alanı. Runner çözüm denemez; tespit edilince iş durur, kanala bildirim gider ve insan çözüm kuyruğu beslenir.",
+      "description": "CAPTCHA/security-challenge politika alanı. Runner bypass veya üçüncü taraf çözüm denemez; tespit edilince job auto_quarantine durumuna alınır ve policy/session yeniden değerlendirmesi planlanır.",
       "properties": {
         "policy": {
-          "const": "abort_and_notify"
+          "const": "abort_and_notify",
+          "description": "Challenge durumunda submit durur, audit/ops bildirimi üretilir ve job auto_quarantine olur."
         },
         "notifyChannelRef": {
           "type": "string",
@@ -659,7 +743,8 @@
         },
         "maxHumanSolvesPerDay": {
           "type": "integer",
-          "minimum": 0
+          "const": 0,
+          "description": "Legacy uyumluluk alanı. 0-HITL modelinde insan CAPTCHA çözüm kuyruğu yoktur ve değer 0 olmalıdır."
         }
       }
     },

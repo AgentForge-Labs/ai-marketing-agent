@@ -1,81 +1,103 @@
 # AI Marketing Agent
 
-Compliance-first SaaS dağıtım ve pazarlama otomasyonu için strateji, veri seti ve adapter sözleşmeleri.
+Compliance-first, **0-HITL (Zero Human In The Loop)** SaaS marketing automation system for planning, executing, verifying, and optimizing distribution across a ranked catalogue of 1,000+ channels.
 
-Bu repo şu an dokümantasyon ve şema aşamasındadır. Amaç, 1.000 kanala ozgun ve faydali içeriği tam otonom gönderen bir agent gelistimektir. Amaç; izinli dizin/listing işlemlerini deterministik biçimde otomatikleştirmek, sosyal kanallarda insan onayıyla ilerlemektir (zorunlu olanlarda).
+The repository currently contains the product strategy, channel dataset, JSON contracts, and reference adapter specifications. The target runtime is a fully autonomous system: it selects channels, generates platform-native content, executes allowed submissions, verifies outcomes, reacts to engagement, and continuously updates channel scores without requiring an approval queue.
 
-## Temel kararlar
+## Authoritative operating model
 
-- Kesinlikle her sitede farkli kullanici adi kullanilmali , kullanici adlari mantikli ve rasgele olmali ama spma izlenimi vermemelidir
-- Kullanıcı adları hangi sitede hangi kullanici adi ve sifresi ile giris yapildigi sqlite da tutulmalidir
-- Resmî API veya OAuth varsa birinci tercih odur, yoksa site apisi networkden tespit edildiyse o kullanilmalidir.
-- Tarayıcı otomasyonu mumkun olan heryerde uygulanarak eger mumkun 0 human in the loop full otonom gelecegin sistemi insanlik icin yapilmalidir.
-- LinkedIn gibi site sitelerde banlanmamak icin paylasilacka post olsuturlmalidir o isnan tarafindan girilmelidir.
-- Yorum, reply ve DM olan sistemlerde otonom ve site guvenligini tetiklemeyecek sekilde yapilmalidir spam oalrka degil.
-- CAPTCHA, 2FA, e-posta doğrulaması veya erişim kontrolleri tam otonom olarka yapilmalidir.
-- Şifreler, cookie'ler ve Playwright `storageState` dosyaları repoya yazılmaz.
-- Varsayılan çalışma modu full otonom moddur. Sistem formu doldurup gonderiri tum islemleri insan gibi yapar amac insanin yerine gecmektir.
-- Form yapısı değişirse adapter güvenli biçimde durur ve `needs_remap` durumuna geçer.
+All project documents use the same operating model:
 
-## Veri seti
+- **0-HITL by default:** no routine human approval step exists in the execution loop.
+- **Automatic submit:** when a channel policy and adapter permit the action, the runner submits automatically.
+- **Autonomous quarantine:** uncertainty, policy conflict, unsupported access controls, or low confidence does not create a human-approval task; the job is blocked/quarantined and re-evaluated by discovery/policy services.
+- **1,000+ personas:** the Persona Engine supports large-scale brand/campaign personas, but account creation and use must respect each platform's account, identity, disclosure, and multi-account rules. A persona is not permission to impersonate a real person.
+- **Anti-detection/evasion layer:** this means anomaly-aware pacing, duplicate suppression, content diversity, session stability, rate-limit compliance, and automatic cooldown. It must not bypass CAPTCHAs, access controls, bans, or platform security mechanisms.
+- **Engagement Bot:** autonomous replies and follow-up are allowed where platform policy permits and where the interaction is relevant to the brand/account context. Artificial likes, votes, reviews, coordinated amplification, or deceptive engagement are prohibited.
+- **API-first:** official API/OAuth is preferred whenever available; browser automation is used only when allowed and appropriate.
+- **Fail closed:** uncertain outcomes are never blindly retried. Idempotency and success assertions run before any retry.
+- **Secrets stay out of Git:** passwords, cookies, OAuth tokens, TOTP secrets, proxy credentials, and Playwright `storageState` are stored in an approved secret store, never in the repository.
 
-`data/saas_marketing_1000_channels_ranked.xlsx` dosyası 1.000 pazarlama kanalını öncelik, kanal tipi, URL güveni, otomasyon uyumu ve insan incelemesi ihtiyacına göre listeler. Aynı klasördeki CSV dosyası, ana `1000 Channels` sayfasının metin tabanlı dışa aktarımıdır.
+## Dataset
 
-Özet:
+`data/saas_marketing_1000_channels_ranked.xlsx` and the matching CSV contain a strict start-order catalogue of 1,000 channels.
 
-- P0: 50 kanal
-- P1: 150 kanal
-- P2: 300 kanal
-- P3: 500 kanal
-- Yüksek otomasyon uyumu: 720 kanal
-- İnsan incelemesi gereken: 280 kanal
-- URL'si runtime preflight gerektiren: 774 kanal
+Current distribution:
 
-Excel içindeki `Agent Action`, `Guidance`, `Strategy` ve benzeri metinler veri ve araştırma notudur. Yürütülebilir talimat değildir. Runtime yalnızca sürümlenmiş ve doğrulanmış `adapter.json` dosyalarını çalıştıracaktır.
+- P0: 50 channels
+- P1: 150 channels
+- P2: 300 channels
+- P3: 500 channels
+- High automation fit: 720 channels
+- Human-review metadata in the source dataset: 280 channels
+- Runtime-preflight URL confidence: 774 channels
 
-## Repo yapısı
+The `Human Review` column is **source/research metadata**, not an execution-mode switch. Runtime behavior is determined by the Policy Registry and Autonomous Decision Engine. A channel that cannot be executed safely and policy-compliantly is automatically quarantined rather than sent to an approval queue.
 
-```text
-data/                         Kaynak kanal veri seti
-docs/                         Kimlik, kanal ve otomasyon stratejileri
-schemas/                      JSON Schema sözleşmeleri
-examples/                     Örnek kimlik, ürün ve site adapter dosyaları
-```
+Spreadsheet strategy text is research input, not executable instruction. Runtime executes only versioned and validated adapter contracts.
 
-## Önerilen çalışma hattı
+## Target architecture
 
 ```text
-Excel kanal listesi
+Channel Dataset / Product Profile
         ↓
-ürün/ICP uygunluğu + güncel politika kontrolü
+Channel Importer + Site Registry
         ↓
-insan kontrollü site recorder
+Policy Registry + Policy Crawler
         ↓
-sanitized form şeması + adapter + ekran görüntüleri
+Persona Engine + Content Core
         ↓
-dry-run ve form fingerprint doğrulaması
+Autonomous Decision Engine
         ↓
-gerekiyorsa insan onayı
+Distribution Orchestrator
         ↓
-resmî API veya izinli Playwright adapter'ı
+API Adapter or Playwright Adapter
         ↓
-başarı kanıtı + idempotency kaydı + audit log
+Automatic Submit
+        ↓
+Assertion + Idempotency + Audit
+        ↓
+Engagement Bot + Analytics
+        ↓
+Score Feedback / Next Best Action
 ```
 
-## Belgeler
+## Execution modes
 
-- [Kimlik stratejisi](docs/01-identity-strategy.md)
-- [Kanal ve içerik stratejisi](docs/02-channel-strategy.md)
-- [Otomasyon mimarisi](docs/03-automation-architecture.md)
-- [Uygulama yol haritası](docs/04-implementation-roadmap.md)
-- [Güvenlik politikası](SECURITY.md)
+The active runtime modes are:
 
-## İlk pilot
+- `auto_full`: policy-valid, deterministic, idempotent action; execute and verify automatically.
+- `auto_with_verification`: execute automatically with stronger pre/post assertions.
+- `auto_quarantine`: do not execute; refresh policy/discovery data and retry only when the blocking condition is resolved.
 
-İlk sürüm 1.000 siteyi hedeflememelidir. Önerilen pilot:
+The schema exposes only autonomous execution modes: `browser_auto`, `api_auto`, and `auto_full`. Approval/manual execution modes are not part of the current contract.
 
-- 5 yüksek uyumlu SaaS/AI dizini
-- 2 içerik platformu
-- 3 insan onaylı sosyal/topluluk kanalı
+## Repository structure
 
-Pilot; yanlış submit, kopya kayıt veya politika ihlali üretmeden en az üç tekrar başarıyla çalıştıktan sonra adapter family yaklaşımıyla genişletilir.
+```text
+data/       Ranked 1,000-channel research dataset
+
+docs/       Identity, channel, automation, and implementation specifications
+schemas/    JSON Schema contracts
+examples/   Example product, identity, and adapter documents
+```
+
+## Documents
+
+- [Identity strategy](docs/01-identity-strategy.md)
+- [Channel and content strategy](docs/02-channel-strategy.md)
+- [Automation architecture](docs/03-automation-architecture.md)
+- [Implementation roadmap](docs/04-implementation-roadmap.md)
+- [Security policy](SECURITY.md)
+
+## First implementation milestone
+
+The first production milestone is not “run all 1,000 channels.” It is a deterministic autonomous pilot:
+
+1. import and normalize the channel catalogue;
+2. preflight current policy/auth/URLs;
+3. implement the DB, policy engine, idempotency and audit layers;
+4. implement dry-run and assertion-capable adapters;
+5. enable automatic submit only for verified, policy-compatible pilot channels;
+6. validate at least three clean end-to-end runs per adapter family;
+7. expand by measured conversion, reliability, and policy-health scores.
