@@ -20,7 +20,12 @@ All project documents use the same operating model:
 
 ## Dataset
 
-`data/saas_marketing_1000_channels_ranked.xlsx` and the matching CSV contain a strict start-order catalogue of 1,000 channels.
+`data/saas_marketing_1000_channels_ranked - 1000 Channels.csv` is the canonical machine-readable 1,000-channel catalogue. The tracked XLSX is a convenience snapshot and must not be treated as the runtime source of truth; risk/enforcement decisions are read from the CSV.
+
+
+The canonical CSV also contains action-specific automation-risk fields (`Observed Automation Risk`, browser/API risk, preferred route, runtime mode, safe actions, disabled actions, session strategy and evidence). See [`docs/05-platform-automation-risk-matrix.md`](docs/05-platform-automation-risk-matrix.md).
+
+Observed automation-risk distribution (reviewed 2026-08-27): **748 Low / 172 Moderate / 68 High / 12 Very High**.
 
 Current distribution:
 

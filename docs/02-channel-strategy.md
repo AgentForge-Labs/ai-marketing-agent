@@ -259,3 +259,9 @@ The analytics layer should track:
 ```
 
 This loop runs continuously without a human approval queue. `auto_quarantine` is the autonomous safety valve for anything that is not currently executable.
+
+## Platform-specific operational risk matrix
+
+The 1,000-channel catalogue is additionally classified by observed automation risk and execution route. The runtime must consume the dataset's route/risk columns rather than assuming every social/community site has the same browser-automation profile. See [`05-platform-automation-risk-matrix.md`](05-platform-automation-risk-matrix.md).
+
+A platform may be high risk for browser interaction but low risk for API publishing. LinkedIn is the canonical example; Reddit is explicitly not treated as equivalent to LinkedIn because current developer surfaces support post/comment automation and the operational ecosystem has mature monitoring tools.

@@ -17,7 +17,7 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 ## Phase 1 — Data and policy foundation
 
-- Implement the CSV/XLSX Channel Importer, including the metadata rows before the real CSV header.
+- Implement the canonical CSV Channel Importer, including the metadata rows before the real CSV header. Treat XLSX only as a convenience/export snapshot.
 - Normalize all 1,000 channel records into `site_registry`.
 - Implement URL/domain normalization and validation.
 - Implement runtime preflight for current register/login/submit URLs.
@@ -209,3 +209,13 @@ The project reaches its target state when:
 - tenant and admin UX expose status, results, costs, and quarantine reasons;
 - channel ranking learns from real conversion/reliability data;
 - CI/E2E regression gates protect every adapter/runtime change.
+
+## Risk-matrix implementation requirement
+
+The Channel Importer must ingest the risk/enforcement columns defined in `05-platform-automation-risk-matrix.md`. Before the first live action on any channel, runtime preflight must resolve the preferred route and action-specific exclusions. Direct-research overrides take precedence over category heuristics. A successful 0-HITL implementation must demonstrate at minimum:
+
+- LinkedIn publishing through API/scheduler integration without browser outreach automation;
+- Reddit monitoring + post/comment execution through API/OAuth;
+- review platforms restricted to vendor/listing/review-request/response operations, not review fabrication;
+- Product Hunt/Hacker News/Quora high-risk write actions quarantined when no stable lower-risk route exists;
+- local persistent browser/extension-assisted execution for eligible browser-only directory/forms without raw cookie export.

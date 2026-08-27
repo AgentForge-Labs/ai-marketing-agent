@@ -33,7 +33,7 @@ The adapter contract exposes only autonomous execution modes (`browser_auto`, `a
 
 ### 3.1 Channel Importer
 
-Reads the ranked CSV/XLSX dataset as data only, normalizes rows, and writes versioned `site_registry` records. Spreadsheet text is never executed as instructions.
+Reads the canonical ranked CSV dataset as data only, normalizes rows, and writes versioned `site_registry` records. The XLSX file is a convenience snapshot, not the runtime source of truth. Dataset text is never executed as instructions.
 
 Responsibilities:
 
@@ -440,3 +440,14 @@ No adapter family reaches production until it passes:
 ```
 
 This is the single canonical 0-HITL runtime model for the repository.
+
+## Platform Risk Router
+
+Before Adapter Compiler/Runner execution, `PlatformRiskRouter` reads the channel row's observed risk, browser risk, API risk, preferred route, session strategy and high-risk action exclusions from the 1,000-channel dataset. It produces one of:
+
+- `api_auto` — use OAuth/API/bot/webhook or unified social publishing API;
+- `browser_auto` — use a local persistent authorized browser profile for deterministic, lower-risk forms;
+- `auto_full` — select the lower-risk route dynamically and execute/verify;
+- `auto_quarantine` — keep monitoring/planning active but suppress the risky write action.
+
+Raw browser cookies/session tokens are not exported to a remote worker as an API substitute. Extension-assisted execution keeps the authenticated session inside the user's browser profile. See [`05-platform-automation-risk-matrix.md`](05-platform-automation-risk-matrix.md).
