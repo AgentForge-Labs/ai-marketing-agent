@@ -443,11 +443,15 @@ This is the single canonical 0-HITL runtime model for the repository.
 
 ## Platform Risk Router
 
-Before Adapter Compiler/Runner execution, `PlatformRiskRouter` reads the channel row's observed risk, browser risk, API risk, preferred route, session strategy and high-risk action exclusions from the 1,000-channel dataset. It produces one of:
+Before Adapter Compiler/Runner execution, `PlatformRiskRouter` receives `(channel, requested_action)` and reads that action's canonical risk cell. It parses per-medium values for `public_http`, `official_api`, `cli_sdk`, `webhook_bot`, `unified_api`, `local_browser_agent`, and `browser_extension`, removes `N/A` media, computes the minimum supported risk, then chooses a medium among the minimum-risk candidates using route priority. Coarse `Observed Automation Risk`, `Browser Automation Risk`, and `API Automation Risk` remain context/evidence fields and cannot override the action-specific result.
 
-- `api_auto` — use OAuth/API/bot/webhook or unified social publishing API;
-- `browser_auto` — use a local persistent authorized browser profile for deterministic, lower-risk forms;
-- `auto_full` — select the lower-risk route dynamically and execute/verify;
-- `auto_quarantine` — keep monitoring/planning active but suppress the risky write action.
+The router produces one of:
 
-Raw browser cookies/session tokens are not exported to a remote worker as an API substitute. Extension-assisted execution keeps the authenticated session inside the user's browser profile. See [`05-platform-automation-risk-matrix.md`](05-platform-automation-risk-matrix.md).
+- `api_auto` — use OAuth/API, an API-backed CLI/SDK, bot/webhook, or unified publishing API;
+- `browser_auto` — use a local persistent authorized browser profile/extension when browser is the lowest supported route;
+- `auto_full` — select the minimum-risk route dynamically and execute/verify;
+- `auto_quarantine` — no acceptable supported medium exists for the requested write/engagement action.
+
+Example: LinkedIn `post` resolves to `Low` because `official_api=Low` even though `local_browser_agent=High`; LinkedIn cold DM/outreach remains `Critical` because no lower-risk general route is assumed. Product Hunt browse/data resolves to `Low`, owned submit to `Moderate`, and vote automation to `Critical`.
+
+`cli_sdk` is only low-risk when it calls the same official API/OAuth surface; wrapping browser automation in a CLI does not change its medium risk. Raw browser cookies/session tokens are not exported to a remote worker as an API substitute. Extension-assisted execution keeps the authenticated session inside the user's browser profile. See [`05-platform-automation-risk-matrix.md`](05-platform-automation-risk-matrix.md).

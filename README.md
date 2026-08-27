@@ -23,9 +23,9 @@ All project documents use the same operating model:
 `data/saas_marketing_1000_channels_ranked - 1000 Channels.csv` is the canonical machine-readable 1,000-channel catalogue. The tracked XLSX is a convenience snapshot and must not be treated as the runtime source of truth; risk/enforcement decisions are read from the CSV.
 
 
-The canonical CSV also contains action-specific automation-risk fields (`Observed Automation Risk`, browser/API risk, preferred route, runtime mode, safe actions, disabled actions, session strategy and evidence). See [`docs/05-platform-automation-risk-matrix.md`](docs/05-platform-automation-risk-matrix.md).
+The canonical CSV contains both coarse platform-context fields and the canonical **action × execution-medium** risk fields. Runtime routing uses action-specific columns for public browse, authenticated browse, data collection, own content submit/post, comment/reply, DM/outreach, vote/like/follow, and review/rating. Each action cell starts with the action's main risk and then preserves per-medium risk for `public_http`, `official_api`, `cli_sdk`, `webhook_bot`, `unified_api`, `local_browser_agent`, and `browser_extension`. The main risk is the **minimum risk among actually supported media**. See [`docs/05-platform-automation-risk-matrix.md`](docs/05-platform-automation-risk-matrix.md).
 
-Observed automation-risk distribution (reviewed 2026-08-27): **748 Low / 172 Moderate / 68 High / 12 Very High**.
+The older observed platform-risk distribution (reviewed 2026-08-27) remains contextual metadata: **748 Low / 172 Moderate / 68 High / 12 Very High**. It must not override a lower-risk action route; for example, LinkedIn post publishing is `Low` through the official Posts API even though browser outreach is Critical.
 
 Current distribution:
 
@@ -81,7 +81,7 @@ The schema exposes only autonomous execution modes: `browser_auto`, `api_auto`, 
 
 ```text
 data/       Ranked 1,000-channel research dataset
-
+scripts/    Deterministic dataset risk-matrix generator
 docs/       Identity, channel, automation, and implementation specifications
 schemas/    JSON Schema contracts
 examples/   Example product, identity, and adapter documents

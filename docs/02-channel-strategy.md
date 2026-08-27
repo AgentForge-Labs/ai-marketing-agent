@@ -262,6 +262,8 @@ This loop runs continuously without a human approval queue. `auto_quarantine` is
 
 ## Platform-specific operational risk matrix
 
-The 1,000-channel catalogue is additionally classified by observed automation risk and execution route. The runtime must consume the dataset's route/risk columns rather than assuming every social/community site has the same browser-automation profile. See [`05-platform-automation-risk-matrix.md`](05-platform-automation-risk-matrix.md).
+The 1,000-channel catalogue is classified by **action and execution medium**, not by one platform-wide automation label. Runtime reads the requested action cell and selects the lowest-risk supported medium. See [`05-platform-automation-risk-matrix.md`](05-platform-automation-risk-matrix.md).
 
-A platform may be high risk for browser interaction but low risk for API publishing. LinkedIn is the canonical example; Reddit is explicitly not treated as equivalent to LinkedIn because current developer surfaces support post/comment automation and the operational ecosystem has mature monitoring tools.
+The deterministic rule is `action_main_risk = min(risk(supported_media))`. Unsupported media are `N/A` and do not lower the score. `cli_sdk` inherits the risk of the official API it wraps; a CLI is not a separate loophole. A local real browser agent and a browser extension remain separate media because their operational risk may differ from API execution.
+
+Examples: LinkedIn `Own Content Submit/Post` is `Low` because the official Posts API is `Low`, while the same cell records `local_browser_agent=High`. Product Hunt `Public Browse` and `Data Collection` are `Low`, an owned product submit/update is `Moderate`, and vote automation is `Critical`. Quora public research is `Low` even though autonomous posting remains `High`. Reddit post/comment actions remain lower-risk through API/Devvit than through repetitive browser workflows.

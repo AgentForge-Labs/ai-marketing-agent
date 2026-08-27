@@ -29,6 +29,18 @@ The canonical 1,000-row CSV carries this model as additional columns. Runtime mu
 
 Risk is **action-specific**. LinkedIn is the clearest example: browser-driven profile visits, connection requests or message automation are Critical/Very High, while publishing a post through the Posts API is a much lower-risk integration path.
 
+### Canonical action-risk aggregation
+
+The coarse platform fields are retained for research context, but they are **not** the runtime decision. The canonical rule is:
+
+```text
+action_main_risk = min(risk of every supported execution medium for that action)
+```
+
+Supported medium keys are `public_http`, `official_api`, `cli_sdk`, `webhook_bot`, `unified_api`, `local_browser_agent`, and `browser_extension`. `N/A` means the medium is not assumed/supported for that action and is excluded from the minimum. The action cell records `best=<medium>` plus a note. `cli_sdk` inherits the underlying official API risk; a CLI does not make browser automation safer merely by wrapping it.
+
+This lets the system express both facts at once: **LinkedIn post = Low** because the official Posts API is Low, while `local_browser_agent=High` for the same action. Likewise **Product Hunt browse/data = Low** even though vote automation is Critical.
+
 ## 3. Execution-route priority
 
 The Autonomous Decision Engine should choose routes in this order:
@@ -124,6 +136,18 @@ The canonical CSV dataset contains these additional fields:
 - `Session / Auth Strategy`
 - `Risk Evidence`
 - `Risk Reviewed At`
+- `Public Browse Action Risk`
+- `Authenticated Browse Action Risk`
+- `Data Collection Action Risk`
+- `Own Content Submit/Post Action Risk`
+- `Comment/Reply Action Risk`
+- `DM/Outreach Action Risk`
+- `Vote/Like/Follow Action Risk`
+- `Review/Rating Action Risk`
+- `Recommended Execution Method`
+- `Action Risk Model`
+
+The last ten fields are the canonical runtime routing model. Each action-risk cell begins with the main risk and embeds all medium risks plus `best=<medium>`. They are generated deterministically by `scripts/build_action_risk_matrix.py` for all 1,000 rows.
 
 `Risk Evidence Tier` is either:
 
@@ -137,14 +161,16 @@ The canonical CSV dataset contains these additional fields:
 ```text
 campaign goal
   → channel selection
-  → risk matrix lookup
-  → choose lower-risk route
-      → API/OAuth/bot/webhook: execute automatically
-      → deterministic browser form: execute + verify automatically
-      → critical browser write action with no lower-risk route: auto_quarantine
+  → lookup requested action cell
+  → parse supported medium risks
+  → action_main_risk = minimum supported-medium risk
+  → choose best medium at that minimum risk
+      → API/OAuth/API-backed CLI/bot/webhook/unified API: execute automatically
+      → browser/extension is the minimum-risk supported route: execute + verify automatically
+      → no acceptable supported write route: auto_quarantine
   → verify
   → measure
   → learn
 ```
 
-For LinkedIn, for example, the system remains 0-HITL by automatically publishing through the Posts API while automatically refusing/quarantining browser-driven connection/DM workflows. For Reddit, the system can autonomously monitor, publish and reply through API/OAuth while suppressing voting/engagement-manipulation actions.
+For LinkedIn, the post action is `Low` because the official Posts API is a low-risk supported medium even though the same action records a higher browser-agent risk; cold browser DM/outreach has no lower-risk assumed medium and remains `Critical`. For Product Hunt, browsing and data collection remain `Low`, an owned product submission is `Moderate`, and vote automation remains `Critical`. For Reddit, API/Devvit keeps monitoring/post/comment actions low-risk while voting remains a separately high-risk action.
