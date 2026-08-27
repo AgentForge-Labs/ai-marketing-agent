@@ -2,7 +2,7 @@
 
 Compliance-first, **0-HITL (Zero Human In The Loop)** SaaS marketing automation system for planning, executing, verifying, and optimizing distribution across a ranked catalogue of 1,000+ channels.
 
-The repository currently contains the product strategy, channel dataset, JSON contracts, and reference adapter specifications. The target runtime is a fully autonomous system: it selects channels, generates platform-native content, executes allowed submissions, verifies outcomes, reacts to engagement, and continuously updates channel scores without requiring an approval queue.
+The repository contains the product strategy, channel dataset, JSON contracts, reference adapter specifications, and the first executable channel-risk routing runtime. The target runtime is a fully autonomous system: it selects channels, generates platform-native content, executes allowed submissions, verifies outcomes, reacts to engagement, and continuously updates channel scores without requiring an approval queue.
 
 ## Authoritative operating model
 
@@ -106,3 +106,24 @@ The first production milestone is not “run all 1,000 channels.” It is a dete
 5. enable automatic submit only for verified, policy-compatible pilot channels;
 6. validate at least three clean end-to-end runs per adapter family;
 7. expand by measured conversion, reliability, and policy-health scores.
+
+## Executable risk-router runtime
+
+The repository now includes a zero-dependency Python runtime foundation under `src/ai_marketing_agent/`. It strictly imports the canonical CSV, validates all 8 action-risk cells for every channel, recomputes the minimum supported-medium risk, verifies the declared `best=` route, and fails closed on malformed or unknown data.
+
+The default and maximum production autonomous threshold is **Moderate**; it may only be tightened to `Low`, not raised above Moderate. A requested action whose best supported route is `High`, `Very High`, or `Critical` is returned as `auto_quarantine`; this is independent of the old coarse platform-level risk. Thus LinkedIn `post` executes as `Low` through `official_api`, while LinkedIn `dm` is quarantined as `Critical`. Product Hunt browse/data is Low, owned submit is Moderate, and vote automation is Critical/quarantined.
+
+Run the full runtime tests:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Inspect one route without executing any external action:
+
+```bash
+python3 scripts/route_channel_action.py linkedin.com post
+python3 scripts/route_channel_action.py producthunt.com vote
+```
+
+The router emits `api_auto`, `browser_auto`, `auto_full`, or `auto_quarantine`. Unknown actions, missing routes, malformed risk cells, unknown risk values, inconsistent aggregate risk, or an unsupported risk-model version fail closed.

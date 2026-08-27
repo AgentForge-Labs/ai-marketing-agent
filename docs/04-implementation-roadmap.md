@@ -17,13 +17,15 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 ## Phase 1 — Data and policy foundation
 
-- Implement the canonical CSV Channel Importer, including the metadata rows before the real CSV header. Treat XLSX only as a convenience/export snapshot.
+**Current status (2026-08-27):** the strict canonical CSV importer and action×medium `PlatformRiskRouter` are implemented and regression-tested. Persistence into `site_registry`, URL preflight, and the versioned Policy Registry remain pending.
+
+- Implement the canonical CSV Channel Importer, including the metadata rows before the real CSV header. Treat XLSX only as a convenience/export snapshot. **Implemented.**
 - Normalize all 1,000 channel records into `site_registry`.
 - Implement URL/domain normalization and validation.
 - Implement runtime preflight for current register/login/submit URLs.
 - Implement Policy Registry and versioned policy records.
 - Add policy crawler for API/OAuth availability, allowed actions, disclosure, account rules, and quotas.
-- Implement `auto_full`, `auto_with_verification`, `auto_quarantine` decision primitives.
+- Implement `api_auto`, `browser_auto`, `auto_full`, and `auto_quarantine` decision primitives. **Risk-router decision mapping implemented; external adapter execution remains pending.**
 
 **Exit criteria:** every channel has a normalized registry record, policy freshness state, and deterministic autonomous execution classification.
 

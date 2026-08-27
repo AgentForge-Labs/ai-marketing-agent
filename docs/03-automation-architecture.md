@@ -455,3 +455,19 @@ The router produces one of:
 Example: LinkedIn `post` resolves to `Low` because `official_api=Low` even though `local_browser_agent=High`; LinkedIn cold DM/outreach remains `Critical` because no lower-risk general route is assumed. Product Hunt browse/data resolves to `Low`, owned submit to `Moderate`, and vote automation to `Critical`.
 
 `cli_sdk` is only low-risk when it calls the same official API/OAuth surface; wrapping browser automation in a CLI does not change its medium risk. Raw browser cookies/session tokens are not exported to a remote worker as an API substitute. Extension-assisted execution keeps the authenticated session inside the user's browser profile. See [`05-platform-automation-risk-matrix.md`](05-platform-automation-risk-matrix.md).
+
+### Current executable foundation
+
+The first runtime implementation lives in `src/ai_marketing_agent/`:
+
+- `catalogue.py` strictly imports the canonical CSV and validates its 1,000 contiguous ranks plus all 8,000 action-risk cells.
+- `risk_router.py` independently recomputes `action_main_risk = min(supported medium risks)`, validates deterministic `best=`, and maps the selected route to execution mode.
+- `cli.py` exposes a read-only routing inspection command; it does not perform a platform action.
+
+The current default and maximum autonomous risk ceiling is `Moderate` (it may be tightened to `Low`, but not raised above Moderate). `High`, `Very High`, `Critical`, `N/A`, unknown actions, invalid cells, and unsupported routes fail closed into `auto_quarantine`. This ceiling is intentionally separate from the coarse platform-risk fields: a platform can be globally high-risk while a specific API-backed action remains Low and executable.
+
+Regression command:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
