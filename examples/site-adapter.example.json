@@ -45,9 +45,44 @@
     "retryOn": ["timeout", "networkError", "rateLimited"]
   },
   "captcha": {
-    "policy": "abort_and_notify",
+    "policy": "auto_ensemble",
+    "strategy": "auto_ensemble",
+    "solvers": ["2captcha", "ai_lmm", "buster"],
+    "twoCaptcha": {
+      "apiKeyRef": "vault://captcha/2captcha/apiKey",
+      "server": "2captcha.com",
+      "defaultTimeout": 120,
+      "recaptchaTimeout": 600,
+      "pollingInterval": 10
+    },
+    "aiLmm": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "apiKeyRef": "vault://llm/openai/apiKey",
+      "solverTypes": ["text", "recaptcha_v2", "puzzle"]
+    },
+    "buster": {
+      "enabled": true,
+      "useBsplineMouse": true
+    },
+    "proxyRef": "vault://proxy/residential/uri",
     "notifyChannelRef": "telegram://marketing-agent/alerts",
     "maxHumanSolvesPerDay": 5
+  },
+  "biometricMouse": {
+    "enabled": true,
+    "profileRef": "vault://mouse/profile/mouse_profile.json",
+    "rotationMinutes": 30,
+    "variancePercent": 8,
+    "source": "ai_mouse/playwright_integration.py PlaywrightHumanMouse"
+  },
+  "semanticBrowser": {
+    "enabled": true,
+    "serviceUrl": "http://127.0.0.1:8765",
+    "mode": "summary",
+    "topActions": 25,
+    "useForDiscovery": true,
+    "useForDriftRepair": true
   },
   "flows": {
     "register": {

@@ -40,6 +40,9 @@ Kaynaklar:
 | Adapter compiler | Saf fonksiyon (TS) + Vision-LLM repair | Girdiden eylem listesi üretir; drift durumunda otomatik self-healing |
 | Doğrulama Servisleri | CapSolver / 2Captcha + TOTP Vault | CAPTCHA ve 2FA tamamen otomatik çözülür |
 | E-posta İstemcisi | IMAP/API + Link Extractor | Catch-all inbox otomatik okunur, doğrulama linkleri otomatik tıklanır |
+| **Biometric Mouse** | `wassim-sayah/biometric-mouse` — `ai_mouse/` (PlaywrightHumanMouse) | Gerçek el hareketinden FFT ile profil: jitter, velocity shape, overshoot, click hold. Her 30dk %8 varyans. Davranışsal bot tespitini (Akamai/DataDome/CF) atlatır. Kod: `C:\Users\ahmet\Documents\Projects\ai-marketing-agent\services\biometric-mouse` |
+| **Semantic Browser** | `visser23/semantic-browser` v1.3.2 — `ManagedSession` | Canlı Chromium → ~540 token oda metni (10k yerine). `observe→act→observe` deterministik, cookie/banner auto-detected. HTTP service `8765`. Kod: `services/semantic-browser` |
+| **Agentic CAPTCHA Ensemble** | `2captcha-python` + `aydinnyunus/ai-captcha-bypass` (GPT-4o/Gemini) + `teal33t/captcha_bypass` (Buster) | 30+ tip: reCAPTCHA v2/v3, Turnstile, GeeTest, DataDome vb. Öncelik: 2Captcha (99% / pay-per-1k) → LMM vision fallback → Buster audio fallback. Vault: `vault://captcha/2captcha/apiKey` |
 
 ### Paralel Çalışma Modeli
 
@@ -100,10 +103,16 @@ JSON DSL'i sınırlı Playwright eylemlerine çevirir:
 - `waitForURL`
 - `assertVisible`
 - `captureScreenshot`
-- `solveCaptcha` (otomatik)
+- `solveCaptcha` (agentic ensemble — `captcha.strategy` ile seçilir: `2captcha` | `ai_lmm` | `buster` | `auto_ensemble`)
+  - `2captcha`: `twocaptcha/solver.recaptcha|turnstile|geetest|datadome|...` + proxy + pollingInterval 10s; 30+ tip; `vault://captcha/2captcha/apiKey`
+  - `ai_lmm`: `aydinnyunus/ai-captcha-bypass` — Playwright screenshot → GPT-4o/Gemini vision prompt → Selenium/Playwright action (text/puzzle/recaptcha_v2/audio)
+  - `buster`: `teal33t/captcha_bypass` — `buster_captcha_solver_for_humans` Firefox extension + B-spline insan fare hareketi
+  - `auto_ensemble`: önce 2Captcha, fail → LMM, fail → Buster, fail → human Telegram queue
+- `humanMouseMove` / `humanMouseClick` (biometric) — `ai_mouse/playwright_integration.py` `PlaywrightHumanMouse` ile jitter/velocity/overshoot profilli hareket
+- `semanticObserve` / `semanticAct` (semantic-browser) — `observe(mode=summary)` ile 540 token oda metni, `act(action_id)` deterministik
 - `solve2FA` (TOTP Vault üzerinden)
 
-JSON içinde serbest JavaScript veya `eval` çalıştırılmaz. Drift durumunda Vision-LLM otomatik locator repair yapar.
+JSON içinde serbest JavaScript veya `eval` çalıştırılmaz. Drift durumunda Vision-LLM + semantic-browser otomatik locator repair yapar.
 
 ### Autonomous Runner
 
@@ -116,11 +125,14 @@ preflight
   → entry URL allowlist check
   → form fingerprint check
   → locator uniqueness check
-  → dry-run fill
+  → biometric profile load (ai_mouse/mouse_profile.json, %8 varyans/30dk) + semantic observe (semantic-browser room_text)
+  → dry-run fill (humanMouseMove ile Gaussian değil, FFT jitter + velocity shape)
   → redacted screenshot (otomatik PII masking)
-  → risk score evaluation (otomatik karar)
-  → submit
-  → success/failure assertion (Vision-LLM + multi-signal)
+  → agentic captcha pre-scan (2captcha/buster/LMM ensemble probe)
+  → risk score evaluation (otomatik karar, evasion_check)
+  → submit (humanMouseClick + semanticAct deterministik)
+  → captcha agentic solve on-demand (turnstile/recaptcha/geetest/datadome → 2captcha → LMM → buster)
+  → success/failure assertion (Vision-LLM + semantic-browser delta + multi-signal)
   → audit + idempotency record
   → email verification (otomatik link tıklama)
 ```
@@ -307,7 +319,14 @@ CREATE TABLE jobs (
 - `storageState` cookie ve token içerebildiği için şifreli secret store'da (Vault) tutulur.
 - Site/hesap başına ayrı state kullanılır (Multilogin profili ile eşleştirilir).
 - **Otomatik Credential Enjeksiyonu:** Vault, TOTP secret'ı ile birlikte her login'de otomatik credential ve 2FA code üretir.
-- **CAPTCHA Çözümü:** CapSolver/2Captcha API entegrasyonu ile reCAPTCHA, hCaptcha, Cloudflare Turnstile otomatik çözülür.
+- **CAPTCHA Çözümü (Agentic Ensemble — 0-human):**
+  - **Primary:** `2captcha-python` — `TwoCaptcha(apiKey)` / `AsyncTwoCaptcha` — `recaptcha/sitekey/url`, `turnstile/sitekey/url`, `geetest/gt/challenge/url`, `datadome/captcha_url/pageurl/userAgent/proxy`, `geetest_v4/captcha_id/url`, `lemin/captcha_id/div_id/url` + 25 diğer tip; proxy: `{'type':'HTTPS','uri':'login:password@IP:PORT'}`, `pollingInterval 10s`, `defaultTimeout 120s`, `recaptchaTimeout 600s`; vault: `vault://captcha/2captcha/apiKey`; maliyet: pay-per-1k, raporlama: `report(id, True/False)`.
+  - **LMM Fallback:** `aydinnyunus/ai-captcha-bypass` — Playwright screenshot → GPT-4o (`gpt-4o`) / Gemini (`gemini-2.5-pro`) multimodal prompt → Selenium action (text/puzzle/slider/audio transcribe). `ai_utils.py` prompt'ları, `puzzle_solver.py` slider logic, `successful_solves/*.gif` kanıt. Env: `OPENAI_API_KEY` / `GOOGLE_API_KEY` via `vault://llm/openai/apiKey`.
+  - **Buster Fallback (ücretsiz):** `teal33t/captcha_bypass` — Firefox + `buster_captcha_solver_for_humans-0.7.2` xpi + GeckoDriver + B-spline human mouse; `python recaptcha_buster_bypass.py` pattern.
+  - **Ensemble sırası `auto_ensemble`:** `2captcha` → fail → `ai_lmm` → fail → `buster` → fail → Telegram human queue (son çare, `maxHumanSolvesPerDay` limitli). Her deneme `audit_log.detail_json.captcha` altında maskelenmiş loglanır (token/sonuç değil, sadece tip/süre/sonuç).
+  - **Proxy mindful:** DataDome/Turnstile çözümünde mutlaka residential proxy iletilir (`2captcha` proxy param).
+- **Biometric Mouse:** `biometric-mouse/human_mouse.py` `PlaywrightHumanMouse(page, profile_path="mouse_profile.json")` — `click_element(locator)` / `move_to(x,y)` FFT jitter + early peak velocity + overshoot; `ai_mouse/` klasörü projeye kopyalanır, `scripts/record_mouse.py` + `mouse_dojo/index.html` ile kayıt, `train_mouse_model.py` ile profil, `visualize.py` ile 3×3 rapor.
+- **Semantic Browser:** `visser23/semantic-browser` — `ManagedSession.launch(headful=False)` → `runtime.navigate(url)` → `runtime.observe(mode="summary")` → `room_text` (prose, ~540 token) → LLM planner tek `action_id` seçer → `runtime.act(ActionRequest(action_id))` → delta observe; CLI: `semantic-browser portal --url ...`, `install-browser`, HTTP service `serve --host 127.0.0.1 --port 8765 --api-token`.
 - State süresi dolduğunda autonomous agent otomatik re-login yapar.
 - Screenshot ve HTML kaydından password, token, hidden CSRF value, cookie, e-posta ve kişisel veriler otomatik maskelenir (regex + NER tabanlı PII detector).
 - Trace dosyaları kısa süreli tutulur ve hassas artefakt kabul edilir; otomatik rotation ile silinir.
@@ -351,27 +370,31 @@ Family ortak alan ve doğrulamaları sağlar; site adapter'ı sadece URL, locato
 ## Veri Akışı (Tam Otonom Döngü)
 
 ```text
-[Discovery Agent]       → Vision-LLM ile yeni site keşfi, adapter otomatik üretimi
+[Discovery Agent]       → Vision-LLM + semantic-browser ile yeni site keşfi, adapter + semantic room otomatik üretimi
         ↓
-[Policy Crawler]        → Politika taraması, risk skoru ataması
+[Policy Crawler]        → Politika taraması, risk skoru + captcha tipi + bot seviyesi ataması
         ↓
-[Decision Engine]       → Risk tabanlı otomatik onay/quarantine/block kararı
+[Decision Engine]       → Risk tabanlı auto_full/auto_with_verification/auto_quarantine/block + evasion_check
         ↓
-[Worker Pool]           → 10 IP/Multilogin profili üzerinden paralel job yürütme
+[Worker Pool]           → 10 IP/Multilogin profili üzerinden paralel job (lease, maxConcurrency 1)
         ↓
-[Secret Vault]          → Credential + TOTP + storageState enjeksiyonu
+[Secret Vault]          → Credential + TOTP + storageState + mouse_profile.json + 2Captcha/API key enjeksiyonu
         ↓
-[CAPTCHA Solver]        → reCAPTCHA/hCaptcha/Turnstile otomatik çözüm
+[Biometric Mouse]       → FFT jitter/velocity/overshoot profilli PlaywrightHumanMouse (30dk %8 rotasyon)
         ↓
-[Runner]                → Form doldurma + submit
+[Semantic Browser]      → ManagedSession observe→act oda metni (~540 token, top25, deterministic)
         ↓
-[Email Verifier]        → IMAP üzerinden otomatik doğrulama linki tıklama
+[CAPTCHA Ensemble]      → Agentic: 2captcha (30+ tip + proxy) → LMM GPT-4o/Gemini → Buster (B-spline) → Telegram human
         ↓
-[Assertion Engine]      → Multi-signal + Vision-LLM başarı doğrulaması
+[Runner]                → Form doldurma (humanMouse) + submit (semanticAct)
         ↓
-[Self-Healing Module]   → Drift tespitinde otomatik adapter repair
+[Email Verifier]        → IMAP/API üzerinden otomatik doğrulama linki tıklama
         ↓
-[Audit DB]              → Append-only idempotency ve compliance kaydı
+[Assertion Engine]      → Multi-signal + Vision-LLM + semantic delta başarı doğrulaması
+        ↓
+[Self-Healing Module]   → Drift tespitinde Vision-LLM + semantic mapping otomatik adapter repair
+        ↓
+[Audit DB]              → Append-only idempotency + captcha/mouse/semantic trace kaydı
         ↓
 [Loop]                  → 24/7 otonom, 0 human-in-the-loop
 ```
@@ -382,8 +405,10 @@ Family ortak alan ve doğrulamaları sağlar; site adapter'ı sadece URL, locato
 
 | Senaryo | Otonom Çözüm |
 |---|---|
-| Form drift | Vision-LLM + self-healing, otomatik adapter repair |
-| CAPTCHA | CapSolver/2Captcha API entegrasyonu |
+| Form drift | Vision-LLM + semantic-browser + self-healing, otomatik adapter repair |
+| CAPTCHA | **Agentic Ensemble:** 2Captcha (30+ tip, 99% / pay-per-1k) → LMM GPT-4o/Gemini vision → Buster audio + B-spline |
+| Davranışsal bot tespiti | `biometric-mouse` FFT jitter/velocity/overshoot + 30dk %8 varyans + MultiLogin statik fingerprint |
+| Akıllı browsing | `semantic-browser` observe→act oda metni (~540 token), top 25 curate + `more`, deterministik delta |
 | 2FA | Vault'tan TOTP secret ile otomatik code üretimi |
 | E-posta doğrulama | IMAP + link extractor + izole BrowserContext tıklaması |
 | Policy değişikliği | Autonomous crawler, otomatik cool-down |
@@ -392,6 +417,7 @@ Family ortak alan ve doğrulamaları sağlar; site adapter'ı sadece URL, locato
 | Idempotency | `<product>:<site>:<op>:<version>:<persona>` key ile fail-closed |
 | Banlanan hesap/IP | `dead-pool` veritabanına otomatik kayıt, bir daha kullanılmaz |
 | Risk skoru | Autonomous decision engine ile eşik tabanlı karar |
+| Proxy | 2Captcha/DataDome çözümünde mutlaka residential proxy iletilir |
 ```
 
 

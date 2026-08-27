@@ -648,19 +648,93 @@
     },
     "captcha": {
       "type": "object",
-      "description": "CAPTCHA politika alanı. Runner çözüm denemez; tespit edilince iş durur, kanala bildirim gider ve insan çözüm kuyruğu beslenir.",
+      "description": "Agentic CAPTCHA ensemble — 0-human. Önce 2captcha (30+ tip, 99% ), sonra ai_lmm (GPT-4o/Gemini vision), sonra buster (B-spline + audio), sonra human Telegram. Biometric mouse her solve öncesi aktif.",
       "properties": {
         "policy": {
-          "const": "abort_and_notify"
+          "enum": ["abort_and_notify", "auto_ensemble", "solver_only"],
+          "default": "auto_ensemble",
+          "description": "abort_and_notify: eski fail-closed. auto_ensemble: 2captcha→LMM→buster→human. solver_only: sadece solver dener, human yok."
+        },
+        "strategy": {
+          "enum": ["2captcha", "ai_lmm", "buster", "auto_ensemble"],
+          "default": "auto_ensemble"
+        },
+        "solvers": {
+          "type": "array",
+          "description": "Sıralı deneme listesi. Varsayılan [2captcha, ai_lmm, buster, human_telegram].",
+          "items": {
+            "enum": ["2captcha", "ai_lmm", "buster", "human_telegram"]
+          },
+          "default": ["2captcha", "ai_lmm", "buster"]
+        },
+        "twoCaptcha": {
+          "type": "object",
+          "properties": {
+            "apiKeyRef": { "type": "string", "description": "vault://captcha/2captcha/apiKey — 2captcha.com/apiKey" },
+            "server": { "type": "string", "default": "2captcha.com" },
+            "defaultTimeout": { "type": "integer", "default": 120 },
+            "recaptchaTimeout": { "type": "integer", "default": 600 },
+            "pollingInterval": { "type": "integer", "default": 10 }
+          }
+        },
+        "aiLmm": {
+          "type": "object",
+          "description": "aydinnyunus/ai-captcha-bypass — GPT-4o/Gemini",
+          "properties": {
+            "provider": { "enum": ["openai", "gemini"], "default": "openai" },
+            "model": { "type": "string", "default": "gpt-4o" },
+            "apiKeyRef": { "type": "string", "description": "vault://llm/openai/apiKey veya vault://llm/gemini/apiKey" },
+            "solverTypes": {
+              "type": "array",
+              "items": { "enum": ["text", "complicated_text", "recaptcha_v2", "puzzle", "audio"] },
+              "default": ["text", "recaptcha_v2", "puzzle"]
+            }
+          }
+        },
+        "buster": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "useBsplineMouse": { "type": "boolean", "default": true },
+            "firefoxProfileRef": { "type": "string" }
+          }
+        },
+        "proxyRef": {
+          "type": "string",
+          "description": "DataDome/Turnstile için zorunlu residential proxy — vault://proxy/residential/uri (login:password@IP:PORT)"
         },
         "notifyChannelRef": {
           "type": "string",
-          "description": "Bildirim kanalı referansı (ör. telegram://marketing-agent/alerts)."
+          "description": "Son çare human Telegram — telegram://marketing-agent/alerts"
         },
         "maxHumanSolvesPerDay": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "default": 5
         }
+      }
+    },
+    "biometricMouse": {
+      "type": "object",
+      "description": "wassim-sayah/biometric-mouse — gerçek el FFT profili. Her site/hesap aynı profil ile 30dk %8 varyans.",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "profileRef": { "type": "string", "description": "vault://mouse/profile/mouse_profile.json veya file://profile/mouse_profile.json" },
+        "rotationMinutes": { "type": "integer", "default": 30 },
+        "variancePercent": { "type": "number", "default": 8 },
+        "source": { "type": "string", "default": "ai_mouse/playwright_integration.py PlaywrightHumanMouse" }
+      }
+    },
+    "semanticBrowser": {
+      "type": "object",
+      "description": "visser23/semantic-browser — token-efficient agentic browsing. Live Chromium → ~540 token oda metni.",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "serviceUrl": { "type": "string", "description": "http://127.0.0.1:8765 — semantic-browser serve" },
+        "mode": { "enum": ["summary", "detailed"], "default": "summary" },
+        "topActions": { "type": "integer", "default": 25 },
+        "useForDiscovery": { "type": "boolean", "default": true },
+        "useForDriftRepair": { "type": "boolean", "default": true }
       }
     },
     "flows": {

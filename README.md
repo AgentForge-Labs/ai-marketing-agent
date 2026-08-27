@@ -17,6 +17,18 @@ Bu repo şu an dokümantasyon ve şema aşamasındadır. Amaç, 1.000 kanala ozg
 - Varsayılan çalışma modu full otonom moddur. Sistem formu doldurup gonderiri tum islemleri insan gibi yapar amac insanin yerine gecmektir.
 - Form yapısı değişirse adapter güvenli biçimde durur ve `needs_remap` durumuna geçer.
 
+### Agentic Browsing & CAPTCHA Stack (mimari seviyesinde entegre)
+
+Aşağıdaki 5 repo **mimari ve doküman seviyesinde** entegre edilmiştir; `docs/03-automation-architecture.md` ve `schemas/site-adapter.schema.json` bu entegrasyonu şema olarak zorunlu kılar:
+
+- **biometric-mouse** (`wassim-sayah/biometric-mouse`) — Gerçek elin FFT jitter / velocity shape / overshoot / click-hold profili → `ai_mouse/playwright_integration.py` `PlaywrightHumanMouse` ile her `click_element`/`move_to` insan klonu. 30dk %8 varyans. `schemas/site-adapter.schema.json:biometricMouse` ile zorunlu.
+- **ai-captcha-bypass** (`aydinnyunus/ai-captcha-bypass`) — GPT-4o / Gemini multimodal: `text` / `complicated_text` / `recaptcha_v2` / `puzzle` / `audio` → Selenium screenshot → `ai_utils.py` prompt → action. `captcha.aiLmm` şemasında `provider/model/apiKeyRef`.
+- **captcha_bypass (Buster)** (`teal33t/captcha_bypass`) — Firefox + `buster_captcha_solver_for_humans-0.7.2` + GeckoDriver + B-spline mouse. Ücretsiz fallback. `captcha.buster.enabled`.
+- **2captcha-python** (`2captcha/2captcha-python`) — `TwoCaptcha` / `AsyncTwoCaptcha` API: `recaptcha`/`turnstile`/`geetest`/`datadome` dahil 30+ tip, proxy'li, `pollingInterval 10s`. `captcha.twoCaptcha.apiKeyRef = vault://captcha/2captcha/apiKey` — primary solver.
+- **semantic-browser** (`visser23/semantic-browser`) — Live Chromium → `ManagedSession` → `observe(mode=summary)` ~540 token oda metni (10k yerine) → LLM tek `action_id` → `act()`. `semanticBrowser.enabled` + `serviceUrl http://127.0.0.1:8765`. Locator drift'te Vision-LLM ile birlikte.
+
+Ensemble sırası `captcha.strategy=auto_ensemble`: `2captcha` → fail → `ai_lmm` → fail → `buster` → fail → Telegram human (son çare, `maxHumanSolvesPerDay`). Tüm anahtarlar `C:\Users\ahmet\Downloads\DIGER\sunucular` altındaki dosyalardan `vault://` referansına taşınır; repoda ham secret yok. Detay: `docs/03-automation-architecture.md` ve `SECURITY.md`.
+
 ## Veri seti
 
 `data/saas_marketing_1000_channels_ranked.xlsx` dosyası 1.000 pazarlama kanalını öncelik, kanal tipi, URL güveni, otomasyon uyumu ve insan incelemesi ihtiyacına göre listeler. Aynı klasördeki CSV dosyası, ana `1000 Channels` sayfasının metin tabanlı dışa aktarımıdır.
