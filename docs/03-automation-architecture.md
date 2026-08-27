@@ -463,6 +463,9 @@ The first runtime implementation lives in `src/ai_marketing_agent/`:
 - `catalogue.py` strictly imports the canonical CSV and validates its 1,000 contiguous ranks plus all 8,000 action-risk cells.
 - `risk_router.py` independently recomputes `action_main_risk = min(supported medium risks)`, validates deterministic `best=`, and maps the selected route to execution mode.
 - `cli.py` exposes a read-only routing inspection command; it does not perform a platform action.
+- `storage.py` provides the SQLite prototype migration/import layer, idempotent `site_registry`/action-risk upserts, and append-only risk-decision/preflight audit writes.
+- `url_preflight.py` normalizes HTTP(S) URLs and provides bounded public-network-only reachability checks with redirect revalidation and SSRF-oriented local/private target blocking.
+- `database/migrations/001_runtime_foundation.sql` is the first checksum-tracked prototype migration. Production persistence remains PostgreSQL as specified above.
 
 The current default and maximum autonomous risk ceiling is `Moderate` (it may be tightened to `Low`, but not raised above Moderate). `High`, `Very High`, `Critical`, `N/A`, unknown actions, invalid cells, and unsupported routes fail closed into `auto_quarantine`. This ceiling is intentionally separate from the coarse platform-risk fields: a platform can be globally high-risk while a specific API-backed action remains Low and executable.
 
@@ -471,3 +474,10 @@ Regression command:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
+
+
+### Persistence and preflight invariants
+
+The current persistence prototype treats canonical rank as the stable row identity and keeps domain as an indexed lookup field. Register/login URLs are not unique because multiple marketplace entries can legitimately share a partner portal. Canonical import stores source hashes and only updates rows whose source representation changed. `risk_decision` and `url_preflight_observation` are append-only at the database level through SQLite triggers.
+
+URL preflight is not an automation action. It performs no login, cookie/session reuse, form submit, comment, post, vote, or outreach. It permits only HTTP(S) default ports, rejects URL credentials and malformed/control-character input, resolves the target before connecting, blocks non-global addresses, and validates redirect destinations again before following them.

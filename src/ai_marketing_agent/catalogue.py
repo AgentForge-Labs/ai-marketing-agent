@@ -10,7 +10,8 @@ from typing import Mapping
 
 from .risk_router import ACTION_COLUMNS, ActionRisk, RiskCellError, parse_action_risk
 
-CANONICAL_CSV = Path("data/saas_marketing_1000_channels_ranked - 1000 Channels.csv")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CANONICAL_CSV = PROJECT_ROOT / "data" / "saas_marketing_1000_channels_ranked - 1000 Channels.csv"
 REQUIRED_BASE_COLUMNS = frozenset({"#", "Site", "Domain", "Channel Type"})
 EXPECTED_ACTION_RISK_MODEL_PREFIX = "action-medium-v1:"
 

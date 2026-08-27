@@ -127,3 +127,32 @@ python3 scripts/route_channel_action.py producthunt.com vote
 ```
 
 The router emits `api_auto`, `browser_auto`, `auto_full`, or `auto_quarantine`. Unknown actions, missing routes, malformed risk cells, unknown risk values, inconsistent aggregate risk, or an unsupported risk-model version fail closed.
+
+## Prototype persistence and URL preflight
+
+The executable foundation now includes a **SQLite prototype/test persistence layer**. Production architecture still targets PostgreSQL; SQLite is intentionally limited to local development, deterministic tests, and the first runtime prototype.
+
+`database/migrations/001_runtime_foundation.sql` creates:
+
+- `site_registry` — normalized canonical channel records keyed by rank, with domain lookup index;
+- `channel_action_risk` — the 8 normalized action-risk records per channel;
+- `risk_decision` — append-only audit records for every routed action;
+- `url_preflight_observation` — append-only observations for homepage/register/login reachability;
+- `schema_migrations` — checksum-tracked migration history.
+
+The importer is idempotent: a second import of the same 1,000-channel CSV changes **zero** channel/action-risk rows. Changed source rows are updated by source hash while historical risk decisions remain immutable.
+
+Initialize/import a prototype database and inspect an audited decision:
+
+```bash
+python3 scripts/runtime_db.py --db /tmp/ai-marketing-agent.sqlite3 import
+python3 scripts/runtime_db.py --db /tmp/ai-marketing-agent.sqlite3 route linkedin.com post
+```
+
+Run a selected URL preflight:
+
+```bash
+python3 scripts/runtime_db.py --db /tmp/ai-marketing-agent.sqlite3 preflight producthunt.com homepage --timeout 5
+```
+
+Preflight is deliberately read-only and bounded: only HTTP(S) is accepted, credentials and non-default ports are rejected, private/loopback/link-local/reserved network targets are blocked, every redirect is revalidated, no account session/cookie is attached, no form is submitted, and the response body is not consumed. The request uses a small ranged GET so sites that do not support `HEAD` can still be classified as reachable, redirected, HTTP error, network error, or blocked.
