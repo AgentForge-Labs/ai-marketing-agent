@@ -154,7 +154,8 @@
             },
             "requiresApproval": {
               "type": "boolean",
-              "description": "Yalnızca son adımın submit'inde false olabilir; ara adımlarda Next/Continue için false kullanılır."
+              "const": false,
+              "description": "0-HITL uyumluluk alanı; daima false. Ara/son adım submit kararı policy ve Autonomous Decision Engine tarafından verilir."
             }
           }
         },
@@ -328,15 +329,11 @@
         },
         "execution": {
           "enum": [
-            "manual_only",
-            "draft_only",
             "browser_auto",
-            "browser_with_submit_approval",
-            "api_with_approval",
             "api_auto",
             "auto_full"
           ],
-          "description": "auto_full: Autonomous Decision Engine'in risk skoruna göre tam otomatik çalıştırdığı moddur (bkz. docs/03); runner yürütme kanalını (browser/api) kendisi seçer."
+          "description": "0-HITL execution mode. browser_auto ve api_auto belirli transportu otomatik yürütür; auto_full Autonomous Decision Engine tarafından API/browser seçimi ve otomatik submit ile yürütülür. Approval/manual modları desteklenmez."
         },
         "notes": {
           "type": "string"
@@ -373,7 +370,9 @@
               "$ref": "#/$defs/locator"
             },
             "requiresApproval": {
-              "type": "boolean"
+              "type": "boolean",
+              "const": false,
+              "description": "0-HITL uyumluluk alanı; daima false. Ara/son adım submit kararı policy ve Autonomous Decision Engine tarafından verilir."
             }
           }
         },
@@ -440,48 +439,104 @@
         {
           "if": {
             "not": {
-              "required": ["kind"]
+              "required": [
+                "kind"
+              ]
             }
           },
           "then": {
             "anyOf": [
-              { "required": ["entryUrl"] },
-              { "required": ["steps"] }
+              {
+                "required": [
+                  "entryUrl"
+                ]
+              },
+              {
+                "required": [
+                  "steps"
+                ]
+              }
             ]
           }
         },
         {
           "if": {
             "properties": {
-              "kind": { "const": "web" }
+              "kind": {
+                "const": "web"
+              }
             },
-            "required": ["kind"]
+            "required": [
+              "kind"
+            ]
           },
           "then": {
             "anyOf": [
-              { "required": ["entryUrl"] },
-              { "required": ["steps"] }
+              {
+                "required": [
+                  "entryUrl"
+                ]
+              },
+              {
+                "required": [
+                  "steps"
+                ]
+              }
             ]
           }
         },
         {
           "if": {
             "properties": {
-              "kind": { "const": "email" }
+              "kind": {
+                "const": "email"
+              }
             },
-            "required": ["kind"]
+            "required": [
+              "kind"
+            ]
           },
           "then": {
-            "required": ["mailbox"],
+            "required": [
+              "mailbox"
+            ],
             "not": {
               "anyOf": [
-                { "required": ["entryUrl"] },
-                { "required": ["fields"] },
-                { "required": ["steps"] },
-                { "required": ["submit"] },
-                { "required": ["formFingerprint"] },
-                { "required": ["baseUrl"] },
-                { "required": ["requests"] }
+                {
+                  "required": [
+                    "entryUrl"
+                  ]
+                },
+                {
+                  "required": [
+                    "fields"
+                  ]
+                },
+                {
+                  "required": [
+                    "steps"
+                  ]
+                },
+                {
+                  "required": [
+                    "submit"
+                  ]
+                },
+                {
+                  "required": [
+                    "formFingerprint"
+                  ]
+                },
+                {
+                  "required": [
+                    "baseUrl"
+                  ]
+                },
+                {
+                  "required": [
+                    "requests"
+                  ]
+                }
               ]
             }
           }
@@ -489,20 +544,51 @@
         {
           "if": {
             "properties": {
-              "kind": { "const": "api" }
+              "kind": {
+                "const": "api"
+              }
             },
-            "required": ["kind"]
+            "required": [
+              "kind"
+            ]
           },
           "then": {
-            "required": ["baseUrl", "requests"],
+            "required": [
+              "baseUrl",
+              "requests"
+            ],
             "not": {
               "anyOf": [
-                { "required": ["entryUrl"] },
-                { "required": ["fields"] },
-                { "required": ["steps"] },
-                { "required": ["submit"] },
-                { "required": ["formFingerprint"] },
-                { "required": ["mailbox"] }
+                {
+                  "required": [
+                    "entryUrl"
+                  ]
+                },
+                {
+                  "required": [
+                    "fields"
+                  ]
+                },
+                {
+                  "required": [
+                    "steps"
+                  ]
+                },
+                {
+                  "required": [
+                    "submit"
+                  ]
+                },
+                {
+                  "required": [
+                    "formFingerprint"
+                  ]
+                },
+                {
+                  "required": [
+                    "mailbox"
+                  ]
+                }
               ]
             }
           }
@@ -564,14 +650,11 @@
         },
         "execution": {
           "enum": [
-            "manual_only",
-            "draft_only",
             "browser_auto",
-            "browser_with_submit_approval",
-            "api_with_approval",
             "api_auto",
             "auto_full"
-          ]
+          ],
+          "description": "0-HITL execution mode. browser_auto ve api_auto belirli transportu otomatik yürütür; auto_full Autonomous Decision Engine tarafından API/browser seçimi ve otomatik submit ile yürütülür. Approval/manual modları desteklenmez."
         },
         "allowedActions": {
           "type": "array",
@@ -648,29 +731,27 @@
     },
     "captcha": {
       "type": "object",
-      "description": "Agentic CAPTCHA ensemble — 0-human. Önce 2captcha (30+ tip, 99% ), sonra ai_lmm (GPT-4o/Gemini vision), sonra buster (B-spline + audio), sonra human Telegram. Biometric mouse her solve öncesi aktif.",
+      "description": "CAPTCHA/security-challenge politika alanı. Varsayılan `abort_and_notify` — runner bypass denemez, job auto_quarantine olur. Yalnızca Policy Registry `policy.allowedActions` içinde `captchaSolve` açık ve platform ToS otomasyona izin veriyorsa `auto_ensemble` (agentic) kullanılabilir.",
       "properties": {
         "policy": {
-          "enum": ["abort_and_notify", "auto_ensemble", "solver_only"],
-          "default": "auto_ensemble",
-          "description": "abort_and_notify: eski fail-closed. auto_ensemble: 2captcha→LMM→buster→human. solver_only: sadece solver dener, human yok."
+          "enum": ["abort_and_notify", "auto_ensemble"],
+          "default": "abort_and_notify",
+          "description": "abort_and_notify: challenge durumunda submit durur, audit/ops bildirimi ve auto_quarantine. auto_ensemble: agentic ensemble (2captcha→ai_lmm→buster) yalnızca izinli kanallarda."
         },
         "strategy": {
           "enum": ["2captcha", "ai_lmm", "buster", "auto_ensemble"],
-          "default": "auto_ensemble"
+          "default": "auto_ensemble",
+          "description": "auto_ensemble içinde sıra: 2captcha → ai_lmm → buster → human Telegram (son çare)."
         },
         "solvers": {
           "type": "array",
-          "description": "Sıralı deneme listesi. Varsayılan [2captcha, ai_lmm, buster, human_telegram].",
-          "items": {
-            "enum": ["2captcha", "ai_lmm", "buster", "human_telegram"]
-          },
+          "items": { "enum": ["2captcha", "ai_lmm", "buster", "human_telegram"] },
           "default": ["2captcha", "ai_lmm", "buster"]
         },
         "twoCaptcha": {
           "type": "object",
           "properties": {
-            "apiKeyRef": { "type": "string", "description": "vault://captcha/2captcha/apiKey — 2captcha.com/apiKey" },
+            "apiKeyRef": { "type": "string", "description": "vault://captcha/2captcha/apiKey" },
             "server": { "type": "string", "default": "2captcha.com" },
             "defaultTimeout": { "type": "integer", "default": 120 },
             "recaptchaTimeout": { "type": "integer", "default": 600 },
@@ -683,58 +764,50 @@
           "properties": {
             "provider": { "enum": ["openai", "gemini"], "default": "openai" },
             "model": { "type": "string", "default": "gpt-4o" },
-            "apiKeyRef": { "type": "string", "description": "vault://llm/openai/apiKey veya vault://llm/gemini/apiKey" },
-            "solverTypes": {
-              "type": "array",
-              "items": { "enum": ["text", "complicated_text", "recaptcha_v2", "puzzle", "audio"] },
-              "default": ["text", "recaptcha_v2", "puzzle"]
-            }
+            "apiKeyRef": { "type": "string", "description": "vault://llm/openai/apiKey" }
           }
         },
         "buster": {
           "type": "object",
           "properties": {
             "enabled": { "type": "boolean", "default": true },
-            "useBsplineMouse": { "type": "boolean", "default": true },
-            "firefoxProfileRef": { "type": "string" }
+            "useBsplineMouse": { "type": "boolean", "default": true }
           }
         },
         "proxyRef": {
           "type": "string",
-          "description": "DataDome/Turnstile için zorunlu residential proxy — vault://proxy/residential/uri (login:password@IP:PORT)"
+          "description": "DataDome/Turnstile için zorunlu residential proxy vault://proxy/residential/uri"
         },
         "notifyChannelRef": {
           "type": "string",
-          "description": "Son çare human Telegram — telegram://marketing-agent/alerts"
+          "description": "Bildirim kanalı referansı (ör. telegram://marketing-agent/alerts)."
         },
         "maxHumanSolvesPerDay": {
           "type": "integer",
           "minimum": 0,
-          "default": 5
+          "default": 0,
+          "description": "0-HITL varsayılan 0. auto_ensemble'da son çare human için 5'e kadar izin verilebilir."
         }
       }
     },
     "biometricMouse": {
       "type": "object",
-      "description": "wassim-sayah/biometric-mouse — gerçek el FFT profili. Her site/hesap aynı profil ile 30dk %8 varyans.",
+      "description": "wassim-sayah/biometric-mouse — gerçek el FFT profili, 30dk %8 varyans, yalnızca izinli oturumda stabilize için, ban atlatmak için değil.",
       "properties": {
-        "enabled": { "type": "boolean", "default": true },
-        "profileRef": { "type": "string", "description": "vault://mouse/profile/mouse_profile.json veya file://profile/mouse_profile.json" },
+        "enabled": { "type": "boolean", "default": false },
+        "profileRef": { "type": "string", "description": "vault://mouse/profile/mouse_profile.json" },
         "rotationMinutes": { "type": "integer", "default": 30 },
-        "variancePercent": { "type": "number", "default": 8 },
-        "source": { "type": "string", "default": "ai_mouse/playwright_integration.py PlaywrightHumanMouse" }
+        "variancePercent": { "type": "number", "default": 8 }
       }
     },
     "semanticBrowser": {
       "type": "object",
-      "description": "visser23/semantic-browser — token-efficient agentic browsing. Live Chromium → ~540 token oda metni.",
+      "description": "visser23/semantic-browser — ~540 token oda metni, deterministik observe→act, drift repair'de Vision-LLM ile.",
       "properties": {
         "enabled": { "type": "boolean", "default": false },
-        "serviceUrl": { "type": "string", "description": "http://127.0.0.1:8765 — semantic-browser serve" },
+        "serviceUrl": { "type": "string", "description": "http://127.0.0.1:8765" },
         "mode": { "enum": ["summary", "detailed"], "default": "summary" },
-        "topActions": { "type": "integer", "default": 25 },
-        "useForDiscovery": { "type": "boolean", "default": true },
-        "useForDriftRepair": { "type": "boolean", "default": true }
+        "topActions": { "type": "integer", "default": 25 }
       }
     },
     "flows": {

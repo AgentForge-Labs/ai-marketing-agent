@@ -35,13 +35,21 @@
   },
   "retry": {
     "maxAttempts": 3,
-    "backoffSeconds": [300, 1800, 7200],
-    "retryOn": ["timeout", "networkError", "rateLimited"]
+    "backoffSeconds": [
+      300,
+      1800,
+      7200
+    ],
+    "retryOn": [
+      "timeout",
+      "networkError",
+      "rateLimited"
+    ]
   },
   "captcha": {
     "policy": "abort_and_notify",
     "notifyChannelRef": "telegram://marketing-agent/alerts",
-    "maxHumanSolvesPerDay": 5
+    "maxHumanSolvesPerDay": 0
   },
   "flows": {
     "register": {
@@ -52,24 +60,40 @@
           "valueFrom": "identity.brand.email",
           "fieldType": "email",
           "locators": [
-            { "kind": "label", "name": "Email" },
-            { "kind": "css", "value": "input[type='email']" }
+            {
+              "kind": "label",
+              "name": "Email"
+            },
+            {
+              "kind": "css",
+              "value": "input[type='email']"
+            }
           ]
         },
         {
           "valueFrom": "vault://sites/<site-id>/brand/password",
           "fieldType": "password",
           "locators": [
-            { "kind": "css", "value": "input[type='password']" }
+            {
+              "kind": "css",
+              "value": "input[type='password']"
+            }
           ]
         }
       ],
       "submit": {
-        "locator": { "kind": "role", "role": "button", "name": "Sign up" },
+        "locator": {
+          "kind": "role",
+          "role": "button",
+          "name": "Sign up"
+        },
         "requiresApproval": false
       },
       "success": [
-        { "kind": "url", "matches": "/dashboard|/account|/welcome" }
+        {
+          "kind": "url",
+          "matches": "/dashboard|/account|/welcome"
+        }
       ]
     },
     "submitListing": {
@@ -80,23 +104,38 @@
           "valueFrom": "product.name",
           "fieldType": "text",
           "locators": [
-            { "kind": "label", "name": "Name" },
-            { "kind": "placeholder", "value": "Product name" }
+            {
+              "kind": "label",
+              "name": "Name"
+            },
+            {
+              "kind": "placeholder",
+              "value": "Product name"
+            }
           ]
         },
         {
           "valueFrom": "product.website",
           "fieldType": "text",
           "locators": [
-            { "kind": "label", "name": "Website" },
-            { "kind": "css", "value": "input[name='url'], input[name='website']" }
+            {
+              "kind": "label",
+              "name": "Website"
+            },
+            {
+              "kind": "css",
+              "value": "input[name='url'], input[name='website']"
+            }
           ]
         },
         {
           "valueFrom": "product.description.medium",
           "fieldType": "textarea",
           "locators": [
-            { "kind": "label", "name": "Description" }
+            {
+              "kind": "label",
+              "name": "Description"
+            }
           ]
         },
         {
@@ -104,16 +143,26 @@
           "fieldType": "select",
           "optionsValueFrom": "taxonomy.generic.categories",
           "locators": [
-            { "kind": "label", "name": "Category" }
+            {
+              "kind": "label",
+              "name": "Category"
+            }
           ]
         }
       ],
       "submit": {
-        "locator": { "kind": "role", "role": "button", "name": "Submit" },
+        "locator": {
+          "kind": "role",
+          "role": "button",
+          "name": "Submit"
+        },
         "requiresApproval": false
       },
       "success": [
-        { "kind": "url", "matches": "/submission/|/listing/" }
+        {
+          "kind": "url",
+          "matches": "/submission/|/listing/"
+        }
       ]
     },
     "emailVerification": {
@@ -128,7 +177,10 @@
         "markProcessed": true
       },
       "success": [
-        { "kind": "url", "matches": "/listing/" }
+        {
+          "kind": "url",
+          "matches": "/listing/"
+        }
       ]
     }
   },

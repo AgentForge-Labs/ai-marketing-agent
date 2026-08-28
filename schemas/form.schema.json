@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.local/schemas/form.schema.json",
-  "title": "Recorded Form Contract",
-  "description": "Human recorder tarafından üretilen form.json dosyasının sözleşmesi. Bu dosya sitenin o anki form yapısının normalize edilmiş, değer içermeyen haritasıdır. Şifre, token, CSRF ve kişisel veri asla bu dosyaya yazılmaz.",
+  "title": "Autonomous Form Contract",
+  "description": "Autonomous Discovery Agent tarafından üretilen form.json sözleşmesi. Dosya sitenin güncel form yapısının normalize edilmiş, değer içermeyen haritasıdır; şifre, token, CSRF ve kişisel veri yazılmaz.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -183,8 +183,16 @@
             },
             "not": {
               "anyOf": [
-                { "required": ["defaultValue"] },
-                { "required": ["options"] }
+                {
+                  "required": [
+                    "defaultValue"
+                  ]
+                },
+                {
+                  "required": [
+                    "options"
+                  ]
+                }
               ]
             }
           }
@@ -259,13 +267,15 @@
         },
         "requiresApproval": {
           "type": "boolean",
-          "default": true
+          "const": false,
+          "default": false,
+          "description": "0-HITL uyumluluk alanı; her zaman false olmalıdır. Submit kararı Autonomous Decision Engine tarafından verilir."
         }
       }
     },
     "notes": {
       "type": "string",
-      "description": "Recorder'ın insan notu: CAPTCHA varlığı, çok adımlı form yapısı, anti-bot uyarıları vb. Çalıştırma mantığı bu notlara bağlanmaz."
+      "description": "Autonomous Discovery Agent notları: CAPTCHA/challenge varlığı, çok adımlı form, drift veya diğer yapısal sinyaller. Runtime kararı yapılandırılmış policy/confidence alanlarından verilir."
     }
   }
 }

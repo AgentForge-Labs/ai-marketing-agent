@@ -14,3 +14,5 @@ artifacts/private/
 *.storage-state.json
 *.trace.zip
 
+__pycache__/
+*.py[cod]
