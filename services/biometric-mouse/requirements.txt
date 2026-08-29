@@ -1,0 +1,13 @@
+# Core — required for human_mouse.py and train_mouse_model.py
+numpy>=2.0
+scipy>=1.11
+
+# Recording — required for record_mouse.py
+pynput>=1.7
+
+# Visualization — required for visualize.py
+matplotlib>=3.8
+
+# Browser automation — required for playwright_integration.py
+# After install, also run: playwright install chromium
+playwright>=1.50

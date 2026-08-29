@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mouse Dojo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="hud">
+    <div class="hud-left">
+      <div class="logo">Mouse Dojo</div>
+      <div class="mode-badge" id="modeBadge">&mdash;</div>
+    </div>
+    <div class="hud-center">
+      <div class="stat-block">
+        <span class="stat-val" id="scoreVal">0</span>
+        <span class="stat-label">SCORE</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-val" id="comboVal">x1</span>
+        <span class="stat-label">COMBO</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-val" id="timerVal">5:00</span>
+        <span class="stat-label">TIME</span>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="coverage-label">COVERAGE</div>
+      <div class="coverage-bar-wrap">
+        <div class="coverage-bar" id="coverageBar"></div>
+      </div>
+      <div class="coverage-pct" id="coveragePct">0%</div>
+      <button id="stopBtn" class="btn-stop hidden" title="Stop & save">Stop</button>
+    </div>
+  </div>
+
+  <div id="arena">
+    <div id="startScreen" class="overlay">
+      <div class="overlay-card">
+        <h1>Mouse Dojo</h1>
+        <p class="sub">Biometric Training System</p>
+        <p class="desc">
+          Play 3 rounds of 5 minutes each.<br/>
+          Your mouse movements are recorded by the Python recorder running alongside.<br/>
+          The game forces <strong>every movement type</strong> the model needs.
+        </p>
+        <div class="mode-preview">
+          <div class="mode-card">
+            <div class="mode-name">Sniper</div>
+            <div class="mode-desc">Tiny targets, long distance</div>
+          </div>
+          <div class="mode-card">
+            <div class="mode-name">Swarm</div>
+            <div class="mode-desc">Many fast targets</div>
+          </div>
+          <div class="mode-card">
+            <div class="mode-name">Trace</div>
+            <div class="mode-desc">Follow the moving dot</div>
+          </div>
+        </div>
+        <button id="startBtn" class="btn-primary">Start Training</button>
+      </div>
+    </div>
+
+    <div id="transitionScreen" class="overlay hidden">
+      <div class="overlay-card small">
+        <div class="transition-icon" id="transitionIcon"></div>
+        <h2 id="transitionTitle"></h2>
+        <p id="transitionDesc"></p>
+        <div class="countdown" id="countdown">3</div>
+      </div>
+    </div>
+
+    <div id="doneScreen" class="overlay hidden">
+      <div class="overlay-card">
+        <h2>Training Complete</h2>
+        <p class="sub">Check your Python recorder terminal for data stats.</p>
+        <div class="final-stats" id="finalStats"></div>
+        <div class="coverage-detail" id="coverageDetail"></div>
+        <button class="btn-primary" onclick="location.reload()">Train Again</button>
+      </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
