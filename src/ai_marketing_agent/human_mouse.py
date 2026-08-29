@@ -24,8 +24,14 @@ import os
 from pathlib import Path
 from typing import Any
 
+import sys
+
+# Ensure vendored ai_mouse is importable (services/biometric-mouse)
+for _p in [Path(__file__).resolve().parents[2] / "services" / "biometric-mouse", Path("services/biometric-mouse")]:
+    if _p.exists() and str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
+
 try:
-    # Optional import — only available if services/biometric-mouse/ai_mouse is installed
     from ai_mouse.playwright_integration import PlaywrightHumanMouse as _BaseMouse  # type: ignore
 except Exception:  # pragma: no cover
     _BaseMouse = None  # type: ignore

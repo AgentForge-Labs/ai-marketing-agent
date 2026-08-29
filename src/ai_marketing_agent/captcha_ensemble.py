@@ -28,8 +28,15 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Literal, Optional
+
+# Ensure vendored 2captcha-python and ai-captcha-bypass are importable
+for _p in [Path(__file__).resolve().parents[2] / "services" / "captcha-ensemble", Path("services/captcha-ensemble")]:
+    if _p.exists() and str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 SolverType = Literal["2captcha", "ai_lmm", "buster"]
 

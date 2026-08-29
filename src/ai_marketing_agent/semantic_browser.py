@@ -16,7 +16,14 @@ Usage:
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# Ensure vendored semantic-browser is importable
+for _p in [Path(__file__).resolve().parents[2] / "services" / "semantic-browser", Path("services/semantic-browser")]:
+    if _p.exists() and str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 try:
     from semantic_browser import ManagedSession  # type: ignore

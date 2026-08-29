@@ -17,6 +17,7 @@ from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import HumanMouse, get_human_mouse
 from .captcha_ensemble import CaptchaResult, CaptchaTask, solve_captcha
 from .semantic_browser import SemanticBrowser, get_semantic_browser
+from .runner import AutonomousRunner, RunnerConfig, RunnerResult
 
 __all__ = [
     "ACTION_COLUMNS",
@@ -48,4 +49,7 @@ __all__ = [
     "solve_captcha",
     "SemanticBrowser",
     "get_semantic_browser",
+    "RunnerConfig",
+    "RunnerResult",
+    "AutonomousRunner",
 ]
