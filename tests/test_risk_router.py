@@ -93,11 +93,12 @@ class CanonicalCatalogueTests(unittest.TestCase):
         self.assertTrue(d.should_execute)
         self.assertEqual((d.main_risk, d.selected_medium, d.execution_mode), ("Low", "public_http", "auto_full"))
 
-    def test_quora_post_is_high_and_fail_closed_by_default_threshold(self):
+    def test_quora_post_is_high_and_executable_with_verification(self):
         d = self.route("quora.com", "post")
-        self.assertFalse(d.should_execute)
+        self.assertTrue(d.should_execute)
         self.assertEqual(d.main_risk, "High")
-        self.assertIn("exceeds autonomous threshold", d.reason)
+        self.assertEqual(d.decision_mode, "auto_with_verification")
+        self.assertIn("selected minimum-risk", d.reason)
 
     def test_generic_directory_owned_submit_uses_browser_when_it_is_lowest_route(self):
         # Find the first directory-style row whose submit route is browser-backed
@@ -118,9 +119,12 @@ class CanonicalCatalogueTests(unittest.TestCase):
         self.assertEqual(d.execution_mode, "auto_quarantine")
         self.assertIn("unknown action", d.reason)
 
-    def test_router_cannot_raise_autonomous_threshold_above_moderate(self):
+    def test_router_cannot_raise_autonomous_threshold_above_high(self):
         with self.assertRaisesRegex(ValueError, "always fail-closed"):
-            PlatformRiskRouter(max_autonomous_risk="High")
+            PlatformRiskRouter(max_autonomous_risk="Very High")
+        # High is now allowed (riskli grupta olsa bile, Very High değilse)
+        router = PlatformRiskRouter(max_autonomous_risk="High")
+        self.assertEqual(router.max_autonomous_risk, "High")
 
     def test_na_action_is_quarantined(self):
         d = self.route("linkedin.com", "review")

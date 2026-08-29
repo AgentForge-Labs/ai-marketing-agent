@@ -1,6 +1,8 @@
-# Biometric Mouse Service — `wassim-sayah/biometric-mouse`
+# Biometric Mouse Service — `wassim-sayah/biometric-mouse` — HER ZAMAN
 
-Bu klasör `https://github.com/wassim-sayah/biometric-mouse` reposunun **agentic entegrasyon katmanıdır**. Orijinal `ai_mouse/` kodu değiştirilmeden kopyalanır ve TypeScript runner tarafından `playwright_integration` üzerinden çağrılır.
+Bu klasör `https://github.com/wassim-sayah/biometric-mouse` reposunun **agentic entegrasyon katmanıdır — HER ZAMAN her browser eylemde kullanılır** (Low/Moderate/High per-action, site riskli grupta olsa bile Very High/Critical değilse). Orijinal `ai_mouse/` kodu değiştirilmeden kopyalanır ve TypeScript runner tarafından `playwright_integration` üzerinden çağrılır.
+
+**Güncel Politika:** `Siteler ve riskler` dokümanı per-action risk — biometric mouse her `browser_auto`/`auto_with_verification` eylemde her zaman (fallback Playwright B-spline). Site geneli High olsa bile per-action High → her zaman.
 
 ## Kaynak
 - Orijinal repo: https://github.com/wassim-sayah/biometric-mouse (MIT, 3 yıldız)

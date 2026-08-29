@@ -104,6 +104,7 @@ class RouteDecision:
     reason: str
     medium_risks: Mapping[str, str]
     note: str = ""
+    decision_mode: str = "auto_quarantine"
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -118,6 +119,7 @@ class RouteDecision:
             "reason": self.reason,
             "medium_risks": dict(self.medium_risks),
             "note": self.note,
+            "decision_mode": self.decision_mode,
         }
 
 
@@ -230,11 +232,11 @@ def execution_mode_for(medium: str) -> str:
 class PlatformRiskRouter:
     """Select the lowest-risk supported route for a requested channel action."""
 
-    def __init__(self, *, max_autonomous_risk: str = "Moderate") -> None:
-        if max_autonomous_risk not in {"Low", "Moderate"}:
+    def __init__(self, *, max_autonomous_risk: str = "High") -> None:
+        if max_autonomous_risk not in {"Low", "Moderate", "High"}:
             raise ValueError(
-                "max autonomous risk may only be 'Low' or 'Moderate'; "
-                "High/Very High/Critical routes are always fail-closed"
+                "max autonomous risk may only be 'Low', 'Moderate' or 'High'; "
+                "Very High/Critical routes are always fail-closed"
             )
         self.max_autonomous_risk = max_autonomous_risk
         self.max_autonomous_risk_score = RISK_ORDER[max_autonomous_risk]
@@ -263,6 +265,7 @@ class PlatformRiskRouter:
             reason=reason,
             medium_risks=medium_risks or {},
             note=note,
+            decision_mode="auto_quarantine",
         )
 
     def route(self, channel: object, action: str) -> RouteDecision:
@@ -339,6 +342,7 @@ class PlatformRiskRouter:
                 note=risk.note,
             )
 
+        decision_mode = "auto_full" if risk.main_risk == "Low" else "auto_with_verification"
         return RouteDecision(
             channel_rank=rank,
             site=site,
@@ -348,7 +352,8 @@ class PlatformRiskRouter:
             selected_medium=risk.best_medium,
             execution_mode=mode,
             should_execute=True,
-            reason="selected minimum-risk supported execution medium",
+            reason="selected minimum-risk supported execution medium for requested action",
             medium_risks=risk.medium_risks,
             note=risk.note,
+            decision_mode=decision_mode,
         )

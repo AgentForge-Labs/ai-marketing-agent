@@ -731,12 +731,12 @@
     },
     "captcha": {
       "type": "object",
-      "description": "CAPTCHA/security-challenge politika alanı. Varsayılan `abort_and_notify` — runner bypass denemez, job auto_quarantine olur. Yalnızca Policy Registry `policy.allowedActions` içinde `captchaSolve` açık ve platform ToS otomasyona izin veriyorsa `auto_ensemble` (agentic) kullanılabilir.",
+      "description": "CAPTCHA/security-challenge politika alanı — per-action. Eylem Very High/Critical değilse (Low/Moderate/High), site riskli grupta olsa bile vault:// ile auto_ensemble (2captcha → ai_lmm → buster) kullanılabilir. Very High/Critical → auto_quarantine, ensemble yok. Her deneme audit_log.detail_json.captcha maskeli.",
       "properties": {
         "policy": {
           "enum": ["abort_and_notify", "auto_ensemble"],
-          "default": "abort_and_notify",
-          "description": "abort_and_notify: challenge durumunda submit durur, audit/ops bildirimi ve auto_quarantine. auto_ensemble: agentic ensemble (2captcha→ai_lmm→buster) yalnızca izinli kanallarda."
+          "default": "auto_ensemble",
+          "description": "auto_ensemble: Low/Moderate/High per-action (High riskli grupta olsa bile, Very High değilse) challenge durumunda agentic ensemble (2captcha→ai_lmm→buster) vault:// ile denenir. abort_and_notify: challenge durumunda doğrudan auto_quarantine (Very High/Critical için zorunlu)."
         },
         "strategy": {
           "enum": ["2captcha", "ai_lmm", "buster", "auto_ensemble"],
@@ -792,9 +792,9 @@
     },
     "biometricMouse": {
       "type": "object",
-      "description": "wassim-sayah/biometric-mouse — gerçek el FFT profili, 30dk %8 varyans, yalnızca izinli oturumda stabilize için, ban atlatmak için değil.",
+      "description": "wassim-sayah/biometric-mouse — gerçek el FFT profili, 30dk %8 varyans, HER ZAMAN her browser eylemde (Low/Moderate/High per-action) kullanılır; site riskli olsa bile Very High/Critical değilse her zaman. Ban atlatmak için değil, sıradan insan-benzeri input.",
       "properties": {
-        "enabled": { "type": "boolean", "default": false },
+        "enabled": { "type": "boolean", "default": true },
         "profileRef": { "type": "string", "description": "vault://mouse/profile/mouse_profile.json" },
         "rotationMinutes": { "type": "integer", "default": 30 },
         "variancePercent": { "type": "number", "default": 8 }

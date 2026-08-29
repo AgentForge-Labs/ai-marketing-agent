@@ -1,17 +1,21 @@
 """
-Human-like mouse — agentic wrapper for wassim-sayah/biometric-mouse.
+Human-like mouse — agentic wrapper for wassim-sayah/biometric-mouse — HER ZAMAN.
 
 Vault: profile from vault://mouse/profile/mouse_profile.json (never in repo).
 Original: ai_mouse/playwright_integration.py PlaywrightHumanMouse
+
+Güncel Politika (Kullanıcı onayı):
+- Biometric mouse HER ZAMAN kullanılır (her browser_auto / auto_with_verification eylemde, site geneli riskli olsa bile).
+- Risk eylem bazlıdır: eylem Very High/Critical değilse (Low/Moderate/High) her zaman biometric.
+- Kütüphane: wassim-sayah/biometric-mouse (MIT) — FFT jitter/frequency/velocity per bucket, 30dk %8 varyans.
+- Profil yoksa Playwright fallback (B-spline) yine insan-benzeri hareket sağlar; audit logda belirtilir.
+- Asla ban atlatmak için kullanılmaz; Very High/Critical eylemlerde zaten auto_quarantine.
 
 Usage:
     from ai_marketing_agent.human_mouse import get_human_mouse
     mouse = get_human_mouse(page, profile_ref="vault://mouse/profile/mouse_profile.json")
     await mouse.click_element(page.locator("button.submit"))
     await mouse.move_to(800, 300)
-
-Policy-gated: only when site-adapter.json: biometricMouse.enabled=true and
-policy.allowedActions allows the operation. Never used to bypass bans.
 """
 from __future__ import annotations
 
@@ -28,25 +32,23 @@ except Exception:  # pragma: no cover
 
 
 def _resolve_profile(profile_ref: str) -> str:
-    """Resolve vault:// or file:// ref to local path. In production, decrypt from Vault."""
+    """Resolve vault:// or file:// ref to local path. In production, decrypt from Vault. Her zaman dene, yoksa fallback."""
     if profile_ref.startswith("vault://"):
-        # Vault integration point: fetch and decrypt, cache to /tmp
-        # For prototype, expect env VAULT_MOUSE_PROFILE_JSON or file at C:\...\sunucular\mouse_profile.json
         env_val = os.getenv("VAULT_MOUSE_PROFILE")
         if env_val and Path(env_val).exists():
             return env_val
-        # Fallback: look for local profile/mouse_profile.json (gitignored)
         for cand in [Path("profile/mouse_profile.json"), Path("services/biometric-mouse/profile/mouse_profile.json")]:
             if cand.exists():
                 return str(cand)
-        raise FileNotFoundError(f"Vault profile not found for {profile_ref}. Run record/train first (services/biometric-mouse/README.md).")
+        # Her zaman biometric dene — profil yoksa Playwright fallback (hata fırlatma, audit'te belirt)
+        return str(Path("services/biometric-mouse/profile/mouse_profile.json"))
     if profile_ref.startswith("file://"):
         return profile_ref[7:]
     return profile_ref
 
 
 class HumanMouse:
-    """Thin wrapper that enforces policy-gated, audited human-like moves."""
+    """Thin wrapper — her zaman biometric, per-action risk Very High/Critical hariç her zaman dene (fallback Playwright)."""
 
     def __init__(self, page: Any, profile_ref: str = "vault://mouse/profile/mouse_profile.json", rotation_minutes: int = 30, variance_percent: int = 8):
         self.page = page

@@ -29,6 +29,16 @@ The adapter contract exposes only autonomous execution modes (`browser_auto`, `a
 | Observability | Structured logs, traces, metrics, audit events |
 | Web product | Tenant dashboard + admin/ops dashboard |
 
+## Canonical action-scoped execution policy
+
+Risk is determined by the **requested action**, never by a coarse site-wide label (`Siteler ve riskler` dokümanı: risk site çapında değil, sitede yapılacak eyleme göre belirlenir). The site's overall/category risk is research context only. Runtime must read the canonical action×medium cell for the exact action, recompute its minimum supported-medium risk (`action_main_risk = min(supported medium risks)`), and then apply these autonomous decision rules:
+
+- `Low` → `auto_full` with biometric mouse always and `auto_ensemble` CAPTCHA solving if a challenge appears;
+- `Moderate` or `High` (**riskli grupta olsa bile**) → `auto_with_verification` with stronger assertions, audit and retry constraints, biometric mouse always and `auto_ensemble` CAPTCHA solving if not `Very High`/`Critical`;
+- `Very High`, `Critical`, `N/A`, unknown or stale-policy action → `auto_quarantine` (no biometric/captcha bypass for enforcement).
+
+A risky site can therefore have safe/routable actions, and a generally safe site can still have a quarantined action. `High` is **not** `Very High`: a `High` action on a high-risk site is still routable with verification, biometric shaping and the documented CAPTCHA ensemble. Sensitive browser helpers receive an action-scoped `ExecutionAuthorization`; a site-level flag can never authorize them. Browser-input shaping (biometric mouse) is used for every authorized `Low`/`Moderate`/`High` browser action as ordinary human-like UI input, and `auto_ensemble` (`2captcha` → `ai-captcha-bypass` → `buster`) is used for CAPTCHA/security challenges that appear on those actions, using the vault-backed libraries documented below. Very High/Critical actions remain quarantined even with those helpers.
+
 ## 3. Runtime services
 
 ### 3.1 Channel Importer
@@ -292,7 +302,7 @@ submit
 
 TOTP may be generated from an authorized vault secret.
 
-CAPTCHA or a security challenge is not bypassed. It causes `auto_quarantine` until the authorized account can legitimately continue.
+**CAPTCHA / security challenge — per-action, ensemble-gated (Güncel Politika):** Bir eylem `Low`/`Moderate`/`High` ise (`Very High`/`Critical` değilse) ve sayfada CAPTCHA çıkarsa, `vault://` anahtarlarıyla `auto_ensemble` sırasıyla denenir: `2captcha/2captcha-python` (primary, `AsyncTwoCaptcha`) → `aydinnyunus/ai-captcha-bypass` (GPT-4o/Gemini LMM fallback) → `teal33t/captcha_bypass` (buster + B-spline mouse) → başarısızsa `auto_quarantine`. Bu, site geneli riskli olsa bile geçerlidir; çünkü risk eylem bazlıdır. `Very High`/`Critical` eylemlerde CAPTCHA/ban atlatma denenmez, doğrudan `auto_quarantine`. Her deneme `audit_log.detail_json.captcha` içinde maskeli (tip/süre/sonuç, token yok) ve `risk_decision` ile izlenir. Kütüphaneler: `2captcha/2captcha-python`, `aydinnyunus/ai-captcha-bypass`, `teal33t/captcha_bypass` (ayrıca `wassim-sayah/biometric-mouse` her zaman).
 
 ## 8. Evasion Layer / anomaly controller
 
@@ -321,21 +331,21 @@ Responses:
 - self-heal adapter;
 - quarantine.
 
-It must not use fingerprint spoofing, biometric simulation, CAPTCHA bypass, ban evasion, or unauthorized IP/account rotation to defeat platform controls.
+It must not use fingerprint spoofing, ban evasion, or unauthorized IP/account rotation to defeat platform controls. **Biometric mouse is always used** for every authorized browser action as ordinary human-like input shaping, and **CAPTCHA ensemble is used for `Low`/`Moderate`/`High` actions when a challenge appears** (site geneli riskli olsa bile, eylem `Very High`/`Critical` değilse).
 
-### 8.1 Agentic Human-like Stack (opt-in, policy-gated — 5 repos, vault-backed)
+### 8.1 Authorized browser-interaction stack — biometric always, CAPTCHA ensemble per-action
 
-> **Varsayılan kapalı.** Yalnızca `policy.allowedActions` ve `schemas/site-adapter.schema.json:captcha.policy=auto_ensemble` + `biometricMouse.enabled`/`semanticBrowser.enabled` açık ise ve `C:\Users\ahmet\Downloads\DIGER\sunucular` → `vault://` anahtarları mevcut ise aktif olur. `auto_quarantine` sonrası ban atlatmak için kullanılmaz.
+The browser stack is gated by `ExecutionAuthorization` minted from the **requested action** (`Site × Action` risk, not site-wide). `Low` → `auto_full`, `High`/`Moderate` → `auto_with_verification`; `Very High`/`Critical` cannot receive autonomous authorization. Site-level risk never authorizes a helper by itself.
 
-- **Biometric Mouse** (`wassim-sayah/biometric-mouse`, MIT): `ai_mouse/human_mouse.py` FFT jitter/frequency/velocity/overshoot/click-hold per bucket (short 0-100px / medium 100-400px / long 400px+), `playwright_integration.py` `PlaywrightHumanMouse(page, profile_path="vault://mouse/profile/mouse_profile.json")` → `click_element(locator)` / `move_to(x,y)`, 30dk %8 varyans. Kayıt: `scripts/record_mouse.py` + `mouse_dojo/index.html`, eğitim: `train_mouse_model.py`, `visualize.py` 3×3 rapor. Servis: `services/biometric-mouse/`.
-- **Semantic Browser** (`visser23/semantic-browser` v1.3.2, MIT): `ManagedSession.launch` → `runtime.observe(mode=summary)` prose oda metni (~540 token, top25 + `more`), `runtime.act(ActionRequest(action_id))` deterministik `observe→act→observe` delta; cookie/banner auto-detected; CLI `portal`/`serve --host 127.0.0.1 --port 8765`. Servis: `services/semantic-browser/` — `schemas:semanticBrowser`.
-- **2Captcha primary** (`2captcha/2captcha-python` MIT, 794★): `TwoCaptcha(apiKey)` / `AsyncTwoCaptcha` — `recaptcha/sitekey/url`, `turnstile/sitekey/url`, `geetest/gt/challenge/url`, `datadome/captcha_url/pageurl/userAgent/proxy` + 25 tip, `proxy={'type':'HTTPS','uri':'vault://proxy/residential/uri'}` zorunlu DataDome/Turnstile, `pollingInterval 10s`, `balance`/`report(id, True/False)`. Vault: `vault://captcha/2captcha/apiKey`.
-- **AI LMM fallback** (`aydinnyunus/ai-captcha-bypass` 1.2k★): `ai_utils.py` GPT-4o `gpt-4o` / Gemini `gemini-2.5-pro` screenshot → prompt → Selenium action (`text`/`complicated_text`/`recaptcha_v2`/`puzzle`/`audio`), `puzzle_solver.py` slider, `successful_solves/*.gif` kanıt. Vault: `vault://llm/openai/apiKey`.
-- **Buster fallback** (`teal33t/captcha_bypass` 330★): Firefox + `buster_captcha_solver_for_humans-0.7.2-an+fx.xpi` + GeckoDriver + B-spline human mouse, `recaptcha_buster_bypass.py`.
+- **`wassim-sayah/biometric-mouse` — her zaman (always):** `ai_mouse/human_mouse.py` FFT jitter/frequency/velocity/overshoot/click-hold per bucket (short 0-100px / medium 100-400px / long 400px+), `playwright_integration.py` `PlaywrightHumanMouse(page, profile_path="vault://mouse/profile/mouse_profile.json")` → `click_element(locator)` / `move_to(x,y)`, 30dk %8 varyans. `HumanMouse` her `browser_auto`/`auto_with_verification` eylemde çağrılır; profil `vault://mouse/profile/mouse_profile.json` yoksa Playwright fallback (B-spline) yine insan-benzeri hareket sağlar. Kayıt: `scripts/record_mouse.py` + `mouse_dojo/index.html`, eğitim: `train_mouse_model.py`, `visualize.py` 3×3 rapor. Servis: `services/biometric-mouse/`. **Kütüphane entegrasyonu:** `wassim-sayah/biometric-mouse` (MIT).
+- **`visser23/semantic-browser` v1.3.2:** `ManagedSession.launch` → `runtime.observe(mode=summary)` prose oda metni (~540 token, top25 + `more`), `runtime.act(ActionRequest(action_id))` deterministik `observe→act→observe` delta; cookie/banner auto-detected; CLI `portal`/`serve --host 127.0.0.1 --port 8765`. Servis: `services/semantic-browser/` — `schemas:semanticBrowser`.
+- **`2captcha` primary (`2captcha/2captcha-python` MIT, 794★):** `TwoCaptcha(apiKey)` / `AsyncTwoCaptcha` — `recaptcha/sitekey/url`, `turnstile/sitekey/url`, `geetest/gt/challenge/url`, `datadome/captcha_url/pageurl/userAgent/proxy` + 25 tip, `proxy={'type':'HTTPS','uri':'vault://proxy/residential/uri'}` zorunlu DataDome/Turnstile, `pollingInterval 10s`, `balance`/`report(id, True/False)`. Vault: `vault://captcha/2captcha/apiKey` (`C:\Users\ahmet\Downloads\DIGER\sunucular\*2captcha*.txt`).
+- **`AI LMM fallback` (`aydinnyunus/ai-captcha-bypass` 1.2k★):** `ai_utils.py` GPT-4o `gpt-4o` / Gemini `gemini-2.5-pro` screenshot → prompt → Selenium action (`text`/`complicated_text`/`recaptcha_v2`/`puzzle`/`audio`), `puzzle_solver.py` slider, `successful_solves/*.gif` kanıt. Vault: `vault://llm/openai/apiKey`.
+- **`Buster fallback` (`teal33t/captcha_bypass` 330★):** Firefox + `buster_captcha_solver_for_humans-0.7.2-an+fx.xpi` + GeckoDriver + B-spline human mouse, `recaptcha_buster_bypass.py`.
 
-**Ensemble `auto_ensemble`:** `2captcha` → fail → `ai_lmm` → fail → `buster` → fail → `auto_quarantine` (human Telegram son çare değil, `maxHumanSolvesPerDay` korumalı). Her deneme `audit_log.detail_json.captcha` içinde maskeli (tip/süre/sonuç, token yok) + `risk_decision` + `self_healing_events`.
+**Ensemble `auto_ensemble` — her zaman `High` dahil, `Very High`/`Critical` hariç:** `2captcha` → fail → `ai_lmm` → fail → `buster` → fail → `auto_quarantine`. Eylem `Low`/`Moderate`/`High` ve site eylem hücresi `High` olsa bile, CAPTCHA çıkarsa ensemble denenir; çünkü risk eylem bazlıdır. `Very High`/`Critical` eylemlerde ensemble denenmez, doğrudan `auto_quarantine` (ban atlatma değil). Her deneme `audit_log.detail_json.captcha` içinde maskeli (tip/süre/sonuç, token yok) + `risk_decision` + `self_healing_events`. Tüm anahtarlar `C:\...\sunucular` → `vault://` (bkz. `05-vault-credentials-mapping.md` ve elastic doküman `channel_action_risk` mapping). **Kütüphaneler her zaman kullanılabilir:** `wassim-sayah/biometric-mouse`, `2captcha/2captcha-python`, `aydinnyunus/ai-captcha-bypass`, `teal33t/captcha_bypass`.
 
-**Mimari entegrasyon:** `Adapter Compiler` → `humanMouseMove`/`semanticObserve`/`solveCaptcha` bounded primitives; `Autonomous Runner` → `evasion_check` sonrası `biometricMouse` + `semanticBrowser` → `CAPTCHA Ensemble` → `Assertion Engine` (`semantic delta` + `Vision-LLM` + multi-signal) → `Audit DB` (append-only, PII maskeli, WAL). Tüm anahtarlar `C:\...\sunucular` → `vault://`.
+This keeps the core action-risk rule intact: a high-risk site does not block a lower-risk action (`High` eylem `auto_with_verification` + biometric + ensemble), while a `Very High`/`Critical` action is quarantined even with those helpers. Elastic doküman `channel_action_risk` per-action mapping ile aynı kuralı saklar.
 
 ## 9. Engagement Bot
 
@@ -481,7 +491,7 @@ The first runtime implementation lives in `src/ai_marketing_agent/`:
 - `url_preflight.py` normalizes HTTP(S) URLs and provides bounded public-network-only reachability checks with redirect revalidation and SSRF-oriented local/private target blocking.
 - `database/migrations/001_runtime_foundation.sql` is the first checksum-tracked prototype migration. Production persistence remains PostgreSQL as specified above.
 
-The current default and maximum autonomous risk ceiling is `Moderate` (it may be tightened to `Low`, but not raised above Moderate). `High`, `Very High`, `Critical`, `N/A`, unknown actions, invalid cells, and unsupported routes fail closed into `auto_quarantine`. This ceiling is intentionally separate from the coarse platform-risk fields: a platform can be globally high-risk while a specific API-backed action remains Low and executable.
+The current default and maximum autonomous risk ceiling is `High` (it may be tightened to `Moderate`/`Low`, but not raised above `High`). `High` uses `auto_with_verification` with biometric mouse always and `auto_ensemble` CAPTCHA solving if a challenge appears (per-action, site-wide risk does not block a `High` action). `Very High`, `Critical`, `N/A`, unknown actions, invalid cells, and unsupported routes fail closed into `auto_quarantine` (no biometric/captcha bypass for enforcement). This ceiling is intentionally separate from the coarse platform-risk fields: a platform can be globally high-risk while a specific API-backed action remains Low and executable, and a `High` action on that site remains routable with verification. Elastic doküman `channel_action_risk` mapping per-action risk ve `best=` medium ile aynı kuralı saklar.
 
 Regression command:
 

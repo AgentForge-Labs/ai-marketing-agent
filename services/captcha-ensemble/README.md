@@ -1,6 +1,8 @@
-# Agentic CAPTCHA Ensemble — `2captcha` + `ai-captcha-bypass` + `buster`
+# Agentic CAPTCHA Ensemble — `2captcha` + `ai-captcha-bypass` + `buster` — per-action High dahil
 
-Bu klasör 3 repo + 1 servis için **tek ensemble katmanıdır**. Sıra: `2captcha` → `ai_lmm` → `buster` → human Telegram (son çare).
+Bu klasör 3 repo + 1 servis için **tek ensemble katmanıdır — per-action Low/Moderate/High (High riskli grupta olsa bile, Very High/Critical değilse site riskli olsa bile) CAPTCHA çıkarsa her zaman denenir**. Sıra: `2captcha` → `ai_lmm` → `buster` → `auto_quarantine`.
+
+**Güncel Politika:** Risk site çapında değil eylem bazlı. Eylem `Very High`/`Critical` değilse, vault:// ile `auto_ensemble` her zaman kullanılabilir (site High olsa bile per-action High → ensemble). Biometric mouse her zaman. Very High/Critical → doğrudan quarantine, ensemble yok.
 
 ## Kaynaklar
 - `https://github.com/2captcha/2captcha-python` (794★) — 30+ tip, API `twocaptcha.TwoCaptcha` / `AsyncTwoCaptcha`, sync/async, proxy, balance/report

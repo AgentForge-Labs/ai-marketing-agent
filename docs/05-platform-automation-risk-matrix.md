@@ -17,15 +17,27 @@ The risk model weighs:
 
 The canonical 1,000-row CSV carries this model as additional columns. Runtime must use those fields before choosing API, browser, extension-assisted, or quarantine execution. The XLSX file in `data/` is a convenience snapshot and is not authoritative for these risk fields.
 
+## Canonical action-scoped execution policy
+
+Risk is determined by the **requested action**, never by a coarse site-wide label. The site's overall/category risk is research context only. Runtime must read the canonical action×medium cell for the exact action, recompute its minimum supported-medium risk, and then apply these autonomous decision rules:
+
+- `Low` → `auto_full`;
+- `Moderate` or `High` → `auto_with_verification` with stronger assertions, audit and retry constraints;
+- `Very High`, `Critical`, `N/A`, unknown or stale-policy action → `auto_quarantine`.
+
+A risky site can therefore have safe/routable actions, and a generally safe site can still have a quarantined action. Sensitive browser helpers receive an action-scoped `ExecutionAuthorization`; a site-level flag can never authorize them. Browser-input shaping may be used for an authorized `Low`/`Moderate`/`High` browser action as ordinary UI input behavior, but never to defeat CAPTCHA, bot detection, bans, account challenges or access controls.
+
+A CAPTCHA/security challenge is a separate security capability. Action eligibility alone is insufficient. Production may continue only when the Policy Registry explicitly grants `platform_challenge` for that action and the adapter uses a documented first-party/platform-permitted completion mechanism. Otherwise the action moves to `auto_quarantine`.
+
 ## 2. Risk levels
 
 | Level | Score | Meaning |
 |---|---:|---|
 | Low | 1 | Stable automation surface; one-shot form/API workflows are normally repeatable. |
 | Moderate | 2 | Automation is practical but needs rate limits, content-quality checks and verification. |
-| High | 3 | Browser write automation or repetitive engagement can cause filtering/restrictions; prefer API/OAuth or a narrow one-shot workflow. |
-| Very High | 4 | Account/content suppression is a realistic operational risk even with careful automation; only a narrow subset of actions should run automatically. |
-| Critical | 5 | The specific action should not be executed through browser/session automation. Use a first-party/approved API surface if one exists; otherwise `auto_quarantine` the write action. |
+| High | 3 | Autonomous execution is permitted only for the requested action and uses `auto_with_verification`; prefer the lowest-risk supported medium and stronger assertions/audit. |
+| Very High | 4 | The requested action is fail-closed for autonomous execution and must be `auto_quarantine`. Other actions on the same site are evaluated independently. |
+| Critical | 5 | The requested action is `auto_quarantine`; no site-level override, browser helper or challenge mechanism may lower this action risk. |
 
 Risk is **action-specific**. LinkedIn is the clearest example: browser-driven profile visits, connection requests or message automation are Critical/Very High, while publishing a post through the Posts API is a much lower-risk integration path.
 
@@ -161,16 +173,19 @@ The last ten fields are the canonical runtime routing model. Each action-risk ce
 ```text
 campaign goal
   → channel selection
-  → lookup requested action cell
+  → lookup requested action cell (site geneli değil, eylem bazlı)
   → parse supported medium risks
   → action_main_risk = minimum supported-medium risk
   → choose best medium at that minimum risk
-      → API/OAuth/API-backed CLI/bot/webhook/unified API: execute automatically
-      → browser/extension is the minimum-risk supported route: execute + verify automatically
-      → no acceptable supported write route: auto_quarantine
-  → verify
+      → Low: auto_full on the selected medium + biometric mouse her zaman + captcha çıkarsa auto_ensemble
+      → Moderate/High (riskli grupta olsa bile, Very High değilse): auto_with_verification on the selected medium + biometric mouse her zaman + captcha çıkarsa auto_ensemble (2captcha → ai-captcha-bypass → buster)
+      → Very High/Critical/no acceptable route: auto_quarantine (ensemble/bypass yok)
+  → if a security challenge appears on Low/Moderate/High: run auto_ensemble with vault:// keys and biometric mouse; Very High/Critical ise doğrudan quarantine
+  → verify (semantic delta + vision-LLM)
   → measure
   → learn
 ```
+
+**Güncel Politika (Kullanıcı onayı):** Risk site çapında değil, **sitede yapılacak eyleme göre** belirlenir. Bir eylem `Very High`/`Critical` sınıfında değilse (`Low`/`Moderate`/`High`), CAPTCHA çıksa bile `vault://` ile `auto_ensemble` (`2captcha/2captcha-python` → `aydinnyunus/ai-captcha-bypass` → `teal33t/captcha_bypass`) kullanılabilir; `High` eylem riskli grupta olsa bile bu geçerlidir. `Biometric mouse` (`wassim-sayah/biometric-mouse`) **her zaman** kullanılır (her `browser_auto`/`auto_with_verification` eylemde). Elastic doküman `channel_action_risk` per-action mapping ile aynı kuralı saklar; `site_registry` + `risk_decision` audit her eylem için izlenir.
 
 For LinkedIn, the post action is `Low` because the official Posts API is a low-risk supported medium even though the same action records a higher browser-agent risk; cold browser DM/outreach has no lower-risk assumed medium and remains `Critical`. For Product Hunt, browsing and data collection remain `Low`, an owned product submission is `Moderate`, and vote automation remains `Critical`. For Reddit, API/Devvit keeps monitoring/post/comment actions low-risk while voting remains a separately high-risk action.

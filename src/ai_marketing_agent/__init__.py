@@ -13,6 +13,7 @@ from .risk_router import (
     RiskCellError,
     parse_action_risk,
 )
+from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import HumanMouse, get_human_mouse
 from .captcha_ensemble import CaptchaResult, CaptchaTask, solve_captcha
 from .semantic_browser import SemanticBrowser, get_semantic_browser
@@ -38,6 +39,8 @@ __all__ = [
     "connect_sqlite",
     "normalize_http_url",
     "preflight_url",
+    "ExecutionAuthorization",
+    "authorize_execution",
     "HumanMouse",
     "get_human_mouse",
     "CaptchaTask",
