@@ -1,4 +1,10 @@
-"""Safe, bounded URL normalization and read-only HTTP(S) preflight primitives."""
+"""Safe, bounded URL normalization and read-only HTTP(S) preflight primitives — 5 uygulama her adımda aktif.
+
+Preflight → register formu kaç alan, post/share butonu nerede, API var mı öğrenme adımında bile
+biometric-mouse (her zaman), semantic-browser (observe), ve auto_ensemble captcha (2captcha→ai-captcha→buster)
+aktif olarak kullanılır, çünkü preflight’ta bile captcha/koruma çıkabilir. Vault: vault://mouse/profile/mouse_profile.json,
+vault://captcha/2captcha/apiKey, vault://llm/openai/apiKey, vault://proxy/residential/uri.
+"""
 
 from __future__ import annotations
 

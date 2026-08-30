@@ -55,14 +55,19 @@ Responsibilities:
 - calculate freshness and preflight requirements;
 - reject malformed rows deterministically.
 
-### 3.2 Preflight and Policy Crawler
+### 3.2 Preflight and Policy Crawler — 5 uygulama her adımda aktif
 
-The current dataset contains many homepage-fallback URLs, so preflight is mandatory before execution.
+The current dataset contains many homepage-fallback URLs, so preflight is mandatory before execution. **Preflight, Discovery, Policy ve Vault adımlarının her birinde 5 uygulama aktif olarak kullanılır, çünkü preflight’ta bile captcha/koruma çıkabilir.**
 
-Preflight records:
+**5 kütüphane entegrasyonu (her adımda):**
+- `wassim-sayah/biometric-mouse` → `HumanMouse` her `goto`/`click`/`fill`’de her zaman (preflight gezinme dahil, `vault://mouse/profile/mouse_profile.json`, 30dk %8 varyans)
+- `visser23/semantic-browser` → `ManagedSession.observe(mode=summary)` ~540 token oda metni → `act()` ile register formu kaç alan, post/share butonu nerede, API var mı tespiti (drift repair Vision-LLM)
+- `2captcha/2captcha-python` + `aydinnyunus/ai-captcha-bypass` + `teal33t/captcha_bypass` → `auto_ensemble` (`2captcha` → `ai_lmm` → `buster`) preflight’ta bile CAPTCHA çıkarsa `Low`/`Moderate`/`High` per-action için (Very High/Critical hariç) her zaman denenir (`vault://captcha/2captcha/apiKey`, `vault://llm/openai/apiKey`, residential proxy)
+
+Preflight records (semantic-browser observe + biometric gezinme + ensemble ile elde edilir):
 
 - current canonical URL;
-- register/login/submit routes;
+- register/login/submit routes + **locator’lar** (post/share butonu `role`/`testId`/`css` + frame zinciri, form alanları);
 - official API/OAuth availability;
 - current auth method;
 - current platform automation policy;
@@ -70,10 +75,10 @@ Preflight records:
 - disclosure requirements;
 - account/multi-account constraints;
 - rate-limit/quota metadata;
-- form/API confidence;
+- form/API confidence (semantic delta + vision-LLM);
 - last checked timestamp.
 
-Policy data is versioned. A stale or contradictory policy result causes `auto_quarantine`.
+Policy data is versioned. A stale or contradictory policy result causes `auto_quarantine`. Elastic doküman `site_registry` + `channel_action_risk` per-action `best=` ve `vault://` referanslarıyla aynı 5’li entegrasyonu saklar.
 
 ### 3.3 Persona Engine
 
@@ -171,24 +176,26 @@ API primitives may include:
 - expected response codes;
 - structured success extraction.
 
-### 3.7 Discovery and self-healing
+### 3.7 Discovery and self-healing — 5 uygulama aktif (preflight’taki gibi)
 
-A discovery agent may map a new or changed form into a sanitized form contract. It must not auto-promote a low-confidence mapping into production execution.
+A discovery agent may map a new or changed form into a sanitized form contract — **her adımda 5 uygulama aktif** (sanitize DOM → locator çıkar → dry-run → screenshot/redacted form → confidence ≥ eşikse `adapter_version` üret). Preflight’ta bile captcha çıkabileceği için aynı ensemble kullanılır. It must not auto-promote a low-confidence mapping into production execution.
 
-Flow:
+Flow (her adımda biometric + semantic + ensemble):
 
 ```text
 form drift detected
-  → capture sanitized DOM/form model
-  → semantic remap
+  → biometric mouse ile human-like gezinme (HumanMouse)
+  → semantic-browser observe(mode=summary) → capture sanitized DOM/form model (~540 token)
+  → semantic remap (visser23)
   → schema validation
-  → dry-run
-  → assertion check
+  → dry-run (doldur ama submit etme) — biometric ile fill/click, captcha çıkarsa auto_ensemble (2captcha→ai_lmm→buster)
+  → screenshot/redacted form + audit
+  → assertion check (semantic delta + Vision-LLM)
   → confidence threshold
   → adapter version promotion or quarantine
 ```
 
-No human approval queue is required; promotion is governed by deterministic test thresholds.
+No human approval queue is required; promotion is governed by deterministic test thresholds. Register formu kaç alan, post/share butonu nerede, API var mı — tümü bu 5’li ile öğrenilir (site çapında değil, eylem bazlı).
 
 ### 3.8 Autonomous Runner
 
