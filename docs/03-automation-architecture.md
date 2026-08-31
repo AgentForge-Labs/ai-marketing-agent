@@ -19,7 +19,7 @@ The adapter contract exposes only autonomous execution modes (`browser_auto`, `a
 | Layer | Target |
 |---|---|
 | Runtime | TypeScript + Node.js LTS |
-| Browser automation | Playwright |
+| Browser automation | Playwright via `BrowserProvider` — MultiLogin `connect_over_cdp` → yoksa `headed` (`headless=False`), proxy per-tenant (`vault://proxy/...` → `http://IP:PORT`) yoksa default |
 | API integrations | Official REST/GraphQL/OAuth SDKs where available |
 | Primary database | PostgreSQL for production; SQLite allowed for local prototype/testing |
 | Queue/orchestration | Durable worker queue with leases, retry/backoff, dead-letter/quarantine |
@@ -353,6 +353,23 @@ The browser stack is gated by `ExecutionAuthorization` minted from the **request
 **Ensemble `auto_ensemble` — her zaman `High` dahil, `Very High`/`Critical` hariç:** `2captcha` → fail → `ai_lmm` → fail → `buster` → fail → `auto_quarantine`. Eylem `Low`/`Moderate`/`High` ve site eylem hücresi `High` olsa bile, CAPTCHA çıkarsa ensemble denenir; çünkü risk eylem bazlıdır. `Very High`/`Critical` eylemlerde ensemble denenmez, doğrudan `auto_quarantine` (ban atlatma değil). Her deneme `audit_log.detail_json.captcha` içinde maskeli (tip/süre/sonuç, token yok) + `risk_decision` + `self_healing_events`. Tüm anahtarlar `C:\...\sunucular` → `vault://` (bkz. `05-vault-credentials-mapping.md` ve elastic doküman `channel_action_risk` mapping). **Kütüphaneler her zaman kullanılabilir:** `wassim-sayah/biometric-mouse`, `2captcha/2captcha-python`, `aydinnyunus/ai-captcha-bypass`, `teal33t/captcha_bypass`.
 
 This keeps the core action-risk rule intact: a high-risk site does not block a lower-risk action (`High` eylem `auto_with_verification` + biometric + ensemble), while a `Very High`/`Critical` action is quarantined even with those helpers. Elastic doküman `channel_action_risk` per-action mapping ile aynı kuralı saklar.
+
+### 8.2 BrowserProvider — MultiLogin → headed fallback + per-tenant proxy (discovery & normal mod)
+
+`src/ai_marketing_agent/browser.py:1` `BrowserProvider` **hem discovery hem normal mod** için aynı arayüzü sağlar:
+
+- **MultiLogin varsa:** Local API `http://127.0.0.1:35000` → `GET /api/v1/profile/list` probe → `GET /api/v1/profile/start?automation=true&pIds=<profile_id>` → dönen `wsUrl`/`cdp_url` ile `playwright.chromium.connect_over_cdp(cdp_url)` → aynı sanal cihaz, aynı fingerprint, her login aynı profil.
+- **MultiLogin yoksa:** Vanilla Playwright `chromium.launch(headless=False)` **headed** (kullanıcı isteği: `multilogin kullanilmamissa headed browser`). `headless` parametresi `None` → auto (MultiLogin varsa headless, yoksa headed); `True`/`False` ile override edilebilir. Discovery de normal mod da aynı fallback.
+- **Proxy per-tenant:** `tenant_id` başına farklı çıkış IP'si. Çözüm sırası: `adapter.captcha.proxyRef` (`vault://proxy/residential/uri`) → `TENANT_<ID>_PROXY` env → `RESIDENTIAL_PROXY_URI` → yoksa `None` → default bağlantı. `proxyRef` `vault://` ise `C:/.../sunucular` içindeki dosya Vault'a aktarılır (docs/05). Playwright `launch(proxy={"server":"http://IP:PORT"})` ve `new_context(proxy=...)` her tenant için ayrı. Tenant proxy yoksa default (proxy yok) kullanılır.
+- **API:** `BrowserProvider().launch(tenant_id, profile_id, proxy_ref, is_discovery=False)` → `BrowserLaunchResult(browser, context, page, mode, proxy_used)`; `launch_for_discovery()` aynı provider'ı `is_discovery=True, headless=False` ile çağırır; `close(result)` her iki modda da context/browser kapatır. `RunnerConfig.from_adapter()` ve `AutonomousRunner.run_with_browser_provider(flow, adapter, tenant_id, profile_id, is_discovery)` bu provider'ı kullanır.
+
+```python
+provider = BrowserProvider()
+launched = await provider.launch(tenant_id="acme", profile_id="ml_profile_1", proxy_ref="vault://proxy/residential/uri")
+# launched.mode: "multilogin_cdp" | "headed" | "headless", launched.proxy_used: "login:password@IP:PORT" | None
+# discovery:
+launched_d = await provider.launch_for_discovery(tenant_id="acme", profile_id="ml_profile_1")
+```
 
 ## 9. Engagement Bot
 

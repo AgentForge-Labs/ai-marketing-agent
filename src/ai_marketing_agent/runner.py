@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from .browser import BrowserProvider, get_browser_for_tenant
 from .captcha_ensemble import CaptchaTask, solve_captcha
 from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import get_human_mouse
@@ -256,9 +257,37 @@ class AutonomousRunner:
     def from_adapter_and_decision(adapter: Dict[str, Any], decision: RouteDecision, policy_caps: List[str] | None = None, challenge_mode: str = "auto_ensemble") -> "AutonomousRunner":
         """Factory: validate decision → authorize → build runner with 5-repo config."""
         config = RunnerConfig.from_adapter(adapter)
-        # If adapter says auto_ensemble but policy doesn't allow, fallback to none
         caps = policy_caps or []
-        # For Low/Moderate/High, even High group should get auto_ensemble (per execution_policy)
-        # So we pass challenge_mode=auto_ensemble and let authorize_execution decide per-action
         auth = authorize_execution(decision, policy_capabilities=caps, challenge_mode=challenge_mode)
         return AutonomousRunner(config=config, decision=decision, authorization=auth)
+
+    async def run_with_browser_provider(
+        self,
+        flow: Dict[str, Any],
+        adapter: Dict[str, Any],
+        *,
+        tenant_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        is_discovery: bool = False,
+    ) -> RunnerResult:
+        """
+        Discovery ve normal mod aynı provider — MultiLogin yoksa headed, proxy per-tenant.
+        proxy yoksa default bağlantı.
+        """
+        provider = BrowserProvider()
+        # proxy per-tenant: adapter.captcha.proxyRef veya tenant env
+        proxy_ref = self.config.proxy_ref
+        launched = await provider.launch(
+            tenant_id=tenant_id or str(self.decision.domain),
+            profile_id=profile_id,
+            proxy_ref=proxy_ref,
+            is_discovery=is_discovery,
+        )
+        self._log(
+            "browser_launch",
+            {"mode": launched.mode, "proxy_used": bool(launched.proxy_used), "is_discovery": is_discovery, "tenant": tenant_id},
+        )
+        try:
+            return await self.run_browser_flow(launched.page, flow, adapter)
+        finally:
+            await provider.close(launched)

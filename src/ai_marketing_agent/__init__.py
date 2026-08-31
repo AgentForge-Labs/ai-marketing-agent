@@ -13,6 +13,7 @@ from .risk_router import (
     RiskCellError,
     parse_action_risk,
 )
+from .browser import BrowserProvider, BrowserLaunchResult, get_browser_for_tenant, get_tenant_proxy
 from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import HumanMouse, get_human_mouse
 from .captcha_ensemble import CaptchaResult, CaptchaTask, solve_captcha
@@ -52,4 +53,8 @@ __all__ = [
     "RunnerConfig",
     "RunnerResult",
     "AutonomousRunner",
+    "BrowserProvider",
+    "BrowserLaunchResult",
+    "get_browser_for_tenant",
+    "get_tenant_proxy",
 ]
