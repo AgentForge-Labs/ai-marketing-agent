@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional
 
 from .browser import BrowserProvider, get_browser_for_tenant
 from .captcha_ensemble import CaptchaTask, solve_captcha
+from .email_verification import handle_verification
 from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import get_human_mouse
 from .risk_router import PlatformRiskRouter, RouteDecision
@@ -241,7 +242,6 @@ class AutonomousRunner:
         if semantic:
             try:
                 obs_after = await semantic.observe()
-                # Check success signals from adapter: url/text/selector
                 self._log("semantic_delta", {"room_text": getattr(getattr(obs_after, "planner", None), "room_text", "")[:200]})
             except Exception:
                 pass
@@ -250,6 +250,26 @@ class AutonomousRunner:
                     await semantic.close()
                 except Exception:
                     pass
+
+        # 8. Email verification — Gmail + custom IMAP, vault://, per-tenant proxy aware
+        email_flow = adapter.get("flows", {}).get("emailVerification") if isinstance(adapter.get("flows"), dict) else None
+        if email_flow and email_flow.get("kind") == "email":
+            mailbox_ref = email_flow.get("mailbox", {}).get("mailboxRef", "vault://mail/imap/default")
+            subject_contains = email_flow.get("mailbox", {}).get("subjectContains")
+            from_contains = email_flow.get("mailbox", {}).get("fromContains")
+            # Only run if page indicates verification pending or flow expects it
+            try:
+                ev_result = await handle_verification(
+                    page,
+                    mailbox_ref=mailbox_ref,
+                    tenant_id=str(self.decision.domain),
+                    code_selector="input[name='code'], input[name='otp'], input[type='text']",
+                    subject_contains=subject_contains,
+                    from_contains=from_contains,
+                )
+                self._log("email_verification", ev_result)
+            except Exception as e:
+                self._log("email_verification_failed", {"error": str(e)[:200]})
 
         return RunnerResult(status="done", detail={"flow": flow.get("entryUrl") or "steps", "biometric": self.config.biometric_enabled, "semantic": self.config.semantic_enabled}, audit=self.audit)
 
