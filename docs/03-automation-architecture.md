@@ -1,5 +1,7 @@
 # Autonomous Automation Architecture — 0-HITL
 
+> Canonical policy: `schemas/policy-contract.json` (v1.0.0, `maxAutonomousRisk: High`). This document, README, SECURITY, docs/01/02/04/05, schemas and runtime are generated/validated from that contract. In case of conflict, the contract wins.
+
 ## 1. Architecture contract
 
 This document is the authoritative runtime architecture for the project. The system is **0-HITL**: routine planning, content generation, channel selection, authentication, submit, verification, engagement, retry decisions, and quarantine decisions are autonomous.
@@ -338,7 +340,7 @@ Responses:
 - self-heal adapter;
 - quarantine.
 
-It must not use fingerprint spoofing, ban evasion, or unauthorized IP/account rotation to defeat platform controls. **Biometric mouse is always used** for every authorized browser action as ordinary human-like input shaping, and **CAPTCHA ensemble is used for `Low`/`Moderate`/`High` actions when a challenge appears** (site geneli riskli olsa bile, eylem `Very High`/`Critical` değilse).
+It must not use ban/suspension evasion via identity/IP rotation or submit through explicitly blocked endpoints after a platform block. **Biometric mouse is always used** for every authorized browser action as ordinary human-like input shaping, and **CAPTCHA ensemble is used for `Low`/`Moderate`/`High` actions when a challenge appears** (site geneli riskli olsa bile, eylem `Very High`/`Critical` değilse) per canonical `schemas/policy-contract.json`.
 
 ### 8.1 Authorized browser-interaction stack — biometric always, CAPTCHA ensemble per-action
 

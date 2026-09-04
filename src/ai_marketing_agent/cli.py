@@ -13,7 +13,7 @@ def main() -> int:
     parser.add_argument("domain", help="canonical channel domain, e.g. linkedin.com")
     parser.add_argument("action", help="action or alias, e.g. post, dm, public_browse")
     parser.add_argument("--csv", default=None, help="override canonical CSV path")
-    parser.add_argument("--max-auto-risk", default="Moderate", choices=["Low", "Moderate"])
+    parser.add_argument("--max-auto-risk", default="High", choices=["Low", "Moderate", "High"])
     args = parser.parse_args()
 
     catalogue = ChannelCatalogue.load(args.csv) if args.csv else ChannelCatalogue.load()

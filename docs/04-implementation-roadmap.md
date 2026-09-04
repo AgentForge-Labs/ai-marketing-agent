@@ -84,7 +84,7 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 - `services/captcha-ensemble`: `2captcha-python` `twocaptcha` (`pip install 2captcha-python`) + `aydinnyunus/ai-captcha-bypass` `ai_utils.py`/`puzzle_solver.py` (`services/captcha-lmm/`) + `teal33t/captcha_bypass` Buster `0.7.2` xpi (`services/buster/`). `C:\Users\ahmet\Downloads\DIGER\sunucular` içindeki `openai_platform.txt` ve `2captcha` anahtarı `vault://llm/openai/apiKey` ve `vault://captcha/2captcha/apiKey` olarak taşınır; ham secret repoda yok.
 - `services/semantic-browser`: `visser23/semantic-browser` `pip install semantic-browser[managed]` + `semantic-browser install-browser` + `serve --host 127.0.0.1 --port 8765` (`vault://semantic/browser/token`). `schemas:semanticBrowser.enabled=true` ile drift repair'de Vision-LLM ile birlikte.
 - Her adapter `captcha.policy=auto_ensemble` ile test edilir: önce 2captcha, fail → LMM, fail → Buster. Başarı `successful_solves/*.gif` benzeri kanıtla audit'e maskeli loglanır (token değil, tip/süre/sonuç). `schemas/site-adapter.schema.json:captcha` + `biometricMouse` + `semanticBrowser` ile şemada zorunlu.
-- **Uyum notu:** Bu ensemble yalnızca `policy.allowedActions` içinde ilgili operasyon açık ve platform ToS otomasyona izin verdiğinde aktif olur; `auto_quarantine` sonrası ban atlatmak için kullanılmaz. `SECURITY.md` “Agentic Human-like Stack” bölümüne bak.
+- **Politika:** Bu ensemble per `schemas/policy-contract.json` (v1.0.0, `maxAutonomousRisk: High`) `Low`/`Moderate`/`High` per-action için otomatik akışın parçasıdır; `Very High`/`Critical` doğrudan `auto_quarantine`. Ban/kısıtlama sonrası kimlik/IP değiştirerek erişim engelini aşmak için kullanılmaz. `SECURITY.md` “Agentic Human-like Stack” bölümüne bak.
 
 **Exit criteria:** `turnstile` + `recaptcha_v2` + `datadome` 3 tipte agentic çözüm kanıt üretir ve `dead-pool` tetiklenmeden 10 ardışık submit başarılıdır; `management` review'de `audit_log.detail_json.captcha` maskeli ve `vault://` referanslı.
 
@@ -96,7 +96,7 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 - Implement remote object lookup before retrying ambiguous outcomes.
 - Implement automatic email verification for authorized accounts.
 - Implement automatic TOTP where authorized.
-- Treat CAPTCHA/security challenges as `auto_quarantine`, not bypass opportunities.
+- Solve CAPTCHA/security challenges on `Low`/`Moderate`/`High` per-action via `auto_ensemble` per `schemas/policy-contract.json`; `Very High`/`Critical` or ensemble exhaustion go to `auto_quarantine`.
 - Store resulting listing/post IDs and URLs.
 
 **Exit criteria:** at least five allowed pilot channels complete three consecutive autonomous submit-and-verify E2E runs without duplicate actions.
@@ -118,7 +118,7 @@ Implement the production-safe Evasion Layer:
 - policy/preflight refresh;
 - autonomous quarantine.
 
-Explicitly do **not** implement CAPTCHA bypass, biometric-human simulation, ban evasion, stealth/fingerprint spoofing, or unauthorized identity/IP rotation to defeat platform controls.
+Implement CAPTCHA solving (`auto_ensemble`) and biometric-human input shaping per `schemas/policy-contract.json` for `Low`/`Moderate`/`High` per-action. Explicitly do **not** implement ban/suspension evasion via identity/IP rotation or submit through explicitly blocked endpoints after a platform block.
 
 **Exit criteria:** anomalies reduce or stop execution automatically before they become repeated failures or policy violations.
 
@@ -203,7 +203,7 @@ Expansion gate for each new adapter family/channel:
 - security/redaction tests pass;
 - three clean pilot E2E runs pass;
 - no duplicate submission;
-- no access-control bypass;
+- audited CAPTCHA solving only (`Low`/`Moderate`/`High` via `auto_ensemble`); no ban evasion or blocked-endpoint submission;
 - measurable business outcome is captured where possible.
 
 Roll out progressively from verified P0/P1 channels, then P2/P3 based on actual conversion and operational health.
@@ -215,7 +215,7 @@ The project reaches its target state when:
 - the agent operates 0-HITL for all eligible actions;
 - automatic submit is deterministic and idempotent;
 - 1,000+ persona definitions can be managed and policy-mapped;
-- Evasion Layer autonomously throttles/quarantines anomalies without defeating platform controls;
+- Evasion Layer autonomously throttles/quarantines anomalies; CAPTCHAs on `Low`/`Moderate`/`High` are solved via `auto_ensemble`, bans are never circumvented;
 - Engagement Bot handles eligible conversations autonomously without artificial engagement manipulation;
 - all external actions are policy-versioned and auditable;
 - tenant and admin UX expose status, results, costs, and quarantine reasons;

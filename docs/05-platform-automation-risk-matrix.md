@@ -25,9 +25,9 @@ Risk is determined by the **requested action**, never by a coarse site-wide labe
 - `Moderate` or `High` → `auto_with_verification` with stronger assertions, audit and retry constraints;
 - `Very High`, `Critical`, `N/A`, unknown or stale-policy action → `auto_quarantine`.
 
-A risky site can therefore have safe/routable actions, and a generally safe site can still have a quarantined action. Sensitive browser helpers receive an action-scoped `ExecutionAuthorization`; a site-level flag can never authorize them. Browser-input shaping may be used for an authorized `Low`/`Moderate`/`High` browser action as ordinary UI input behavior, but never to defeat CAPTCHA, bot detection, bans, account challenges or access controls.
+A risky site can therefore have safe/routable actions, and a generally safe site can still have a quarantined action. Sensitive browser helpers receive an action-scoped `ExecutionAuthorization`; a site-level flag can never authorize them. Browser-input shaping is used for an authorized `Low`/`Moderate`/`High` browser action as ordinary UI input behavior per canonical `schemas/policy-contract.json` (v1.0.0, `maxAutonomousRisk: High`).
 
-A CAPTCHA/security challenge is a separate security capability. Action eligibility alone is insufficient. Production may continue only when the Policy Registry explicitly grants `platform_challenge` for that action and the adapter uses a documented first-party/platform-permitted completion mechanism. Otherwise the action moves to `auto_quarantine`.
+A CAPTCHA/security challenge on `Low`/`Moderate`/`High` per-action is solved via `auto_ensemble` (`2captcha` → `ai_lmm` → `buster`) by default; `Very High`/`Critical` move to `auto_quarantine`. This project solves CAPTCHAs as part of the automatic flow; ban/suspension circumvention via identity/IP rotation remains prohibited.
 
 ## 2. Risk levels
 

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/policy-contract.json",
+  "title": "Canonical Policy Contract — single source of truth",
+  "description": "Tek machine-readable politika sözleşmesi. README, docs/01-05, SECURITY.md, schemas/site-adapter.schema.json, src/ai_marketing_agent/{risk_router,cli,execution_policy}.py ve tests/ bu dosyadan üretilir/doğrulanır. Drift yasaktır: bu dosya değişmeden diğerleri değişemez.",
+  "policyContractVersion": "1.0.0",
+  "maxAutonomousRisk": "High",
+  "executableRisks": ["Low", "Moderate", "High"],
+  "quarantinedRisks": ["Very High", "Critical", "N/A"],
+  "decisionModes": {
+    "Low": "auto_full",
+    "Moderate": "auto_with_verification",
+    "High": "auto_with_verification"
+  },
+  "captcha": {
+    "defaultPolicy": "auto_ensemble",
+    "strategy": "auto_ensemble",
+    "thirdPartySolversAllowed": true,
+    "solvers": ["2captcha", "ai_lmm", "buster"],
+    "solverOrder": "2captcha -> ai_lmm -> buster -> auto_quarantine",
+    "forRisks": ["Low", "Moderate", "High"],
+    "quarantineRisks": ["Very High", "Critical"],
+    "notes": "Bu proje CAPTCHA çözer. Low/Moderate/High per-action için third-party ensemble otomatik akışın parçasıdır. Very High/Critical doğrudan auto_quarantine."
+  },
+  "biometricMouse": {
+    "enabled": true,
+    "forRisks": ["Low", "Moderate", "High"],
+    "notes": "Her yetkili browser eyleminde sıradan insan-benzeri input olarak kullanılır."
+  },
+  "prohibited": [
+    "ban/suspension circumvention via identity/IP rotation",
+    "scraping/submitting through explicitly blocked endpoints after platform block"
+  ],
+  "references": {
+    "runtime": [
+      "src/ai_marketing_agent/risk_router.py:PlatformRiskRouter(max_autonomous_risk)",
+      "src/ai_marketing_agent/cli.py:--max-auto-risk",
+      "src/ai_marketing_agent/execution_policy.py:authorize_execution"
+    ],
+    "schemas": ["schemas/site-adapter.schema.json:captcha.policy"],
+    "docs": ["README.md", "SECURITY.md", "docs/01-identity-strategy.md", "docs/02-channel-strategy.md", "docs/03-automation-architecture.md", "docs/04-implementation-roadmap.md", "docs/05-platform-automation-risk-matrix.md"]
+  }
+}

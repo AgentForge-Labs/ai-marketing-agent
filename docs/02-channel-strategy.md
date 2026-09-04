@@ -161,7 +161,7 @@ Autonomous responses include:
 - rebuild adapter;
 - quarantine blocked operations.
 
-The layer must not circumvent bans, CAPTCHAs, authorization, security challenges, or moderation controls through identity/IP/fingerprint spoofing.
+The layer must not circumvent bans/suspensions through identity/IP rotation. CAPTCHAs/security challenges on `Low`/`Moderate`/`High` per-action are solved via `auto_ensemble` per canonical `schemas/policy-contract.json`; `Very High`/`Critical` go to `auto_quarantine`.
 
 ## 9. Scheduling
 
