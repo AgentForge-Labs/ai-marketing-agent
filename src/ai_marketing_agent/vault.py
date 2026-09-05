@@ -29,3 +29,10 @@ class EnvVault:
 
 def resolve_secret(ref: str, provider: Optional[VaultProvider] = None) -> Optional[str]:
     return (provider or EnvVault()).resolve(ref)
+
+
+def require_vault_ref(ref: str, *, field: str = "ref") -> str:
+    """Fail-closed: adapter *Ref fields must be vault:// (never plaintext secrets)."""
+    if not isinstance(ref, str) or not ref.startswith("vault://"):
+        raise ValueError(f"{field} must be a vault:// reference, got {ref!r}")
+    return ref
