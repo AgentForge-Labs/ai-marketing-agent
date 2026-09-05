@@ -16,6 +16,8 @@ from .risk_router import (
 from .browser import BrowserProvider, BrowserLaunchResult, get_browser_for_tenant, get_tenant_proxy
 from .email_verification import fetch_code, fetch_link, handle_verification
 from .account_reuse import BanState, PlatformPolicy, assert_reopen_allowed, audit_record as account_reuse_audit_record
+from .policy_crawler import CrawlSignals, crawl_policy
+from .policy_registry import PolicyRecord, PolicyRegistry, evaluate_policy_gate
 from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import HumanMouse, get_human_mouse
 from .captcha_ensemble import CaptchaResult, CaptchaTask, solve_captcha
@@ -47,6 +49,11 @@ __all__ = [
     "PlatformPolicy",
     "assert_reopen_allowed",
     "account_reuse_audit_record",
+    "CrawlSignals",
+    "crawl_policy",
+    "PolicyRecord",
+    "PolicyRegistry",
+    "evaluate_policy_gate",
     "ExecutionAuthorization",
     "authorize_execution",
     "HumanMouse",

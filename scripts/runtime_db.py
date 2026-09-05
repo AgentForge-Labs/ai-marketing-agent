@@ -39,7 +39,14 @@ def main() -> int:
     route_cmd.add_argument("domain")
     route_cmd.add_argument("action")
     route_cmd.add_argument("--csv", default=None)
-    route_cmd.add_argument("--max-auto-risk", default="Moderate", choices=["Low", "Moderate"])
+    route_cmd.add_argument("--max-auto-risk", default="High", choices=["Low", "Moderate", "High"])
+
+    policy_cmd = sub.add_parser("policy", help="show or refresh a versioned policy record")
+    policy_cmd.add_argument("op", choices=["show", "refresh"])
+    policy_cmd.add_argument("domain")
+    policy_cmd.add_argument("--csv", default=None)
+    policy_cmd.add_argument("--source-url", default="")
+    policy_cmd.add_argument("--max-age-days", type=int, default=30)
 
     preflight_cmd = sub.add_parser("preflight", help="read-only bounded HTTP(S) preflight for one channel URL")
     preflight_cmd.add_argument("domain")
@@ -78,6 +85,31 @@ def main() -> int:
             payload["url_kind"] = args.url_kind
             print(json.dumps(payload, indent=2, sort_keys=True))
             return 0 if result.status in {"reachable", "redirected"} else 4
+
+        if args.command == "policy":
+            from ai_marketing_agent.policy_crawler import crawl_policy  # noqa: E402
+            from ai_marketing_agent.policy_registry import PolicyRegistry, evaluate_policy_gate  # noqa: E402
+
+            registry = PolicyRegistry(store.conn)
+            if args.op == "show":
+                rec = registry.get_current(args.domain)
+                if rec is None:
+                    print(json.dumps({"domain": args.domain, "policy": None, "fresh": False}, indent=2))
+                    return 4
+                print(json.dumps({
+                    "domain": rec.domain, "version": rec.version, "execution": rec.execution,
+                    "allowed_actions": rec.allowed_actions, "denied_actions": rec.denied_actions,
+                    "captcha_policy": rec.captcha_policy, "checked_at": rec.checked_at,
+                    "fresh": registry.is_fresh(args.domain, max_age_days=args.max_age_days),
+                }, indent=2, sort_keys=True))
+                return 0
+            decision = PlatformRiskRouter().route(channel, "own_content_submit_post")
+            record = crawl_policy(domain=channel.domain, source_url=args.source_url, decision=decision)
+            version = registry.upsert_policy(record)
+            gate = evaluate_policy_gate(registry, [channel.domain], max_age_days=args.max_age_days)
+            print(json.dumps({"domain": channel.domain, "version": version,
+                              "execution": record.execution, "gate": gate}, indent=2, sort_keys=True))
+            return 0 if gate["proceed"] else 3
 
     return 1
 

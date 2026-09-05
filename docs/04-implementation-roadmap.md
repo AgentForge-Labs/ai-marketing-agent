@@ -25,9 +25,10 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 - Normalize all 1,000 channel records into `site_registry`. **Implemented in the SQLite prototype with idempotent source-hash upserts.**
 - Implement URL/domain normalization and validation. **Implemented for canonical HTTP(S) URLs and preflight targets.**
 - Implement runtime preflight for current register/login/submit URLs. **Bounded public-network reachability foundation implemented; policy/API capability discovery remains pending.**
-- Implement Policy Registry and versioned policy records.
-- Add policy crawler for API/OAuth availability, allowed actions, disclosure, account rules, and quotas.
+- Implement Policy Registry and versioned policy records. **Implemented (`policy_versions` + `policy_checks`, append-only, `002_policy_registry.sql`).**
+- Add policy crawler for API/OAuth availability, allowed actions, disclosure, account rules, and quotas. **Implemented (`policy_crawler.py`, bounded read-only, no invented policy; `runtime_db.py policy show|refresh`).**
 - Implement `api_auto`, `browser_auto`, `auto_full`, and `auto_quarantine` decision primitives. **Risk-router decision mapping implemented; external adapter execution remains pending.**
+- Policy freshness gate: stale/unknown policy → `auto_quarantine` (`evaluate_policy_gate`, runner `policy_registry` param). **Implemented.**
 
 **Exit criteria:** every channel has a normalized registry record, policy freshness state, and deterministic autonomous execution classification.
 

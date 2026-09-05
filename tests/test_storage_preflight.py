@@ -77,10 +77,12 @@ class StorageTests(unittest.TestCase):
             path = Path(td) / "db.sqlite3"
             conn = connect_sqlite(path)
             try:
-                self.assertEqual(apply_migrations(conn, MIGRATIONS), 1)
+                self.assertEqual(apply_migrations(conn, MIGRATIONS), 2)
                 self.assertEqual(apply_migrations(conn, MIGRATIONS), 0)
-                row = conn.execute("SELECT version, filename, length(checksum) AS n FROM schema_migrations").fetchone()
+                row = conn.execute("SELECT version, filename, length(checksum) AS n FROM schema_migrations ORDER BY version").fetchone()
                 self.assertEqual((row["version"], row["filename"], row["n"]), ("001", "001_runtime_foundation.sql", 64))
+                latest = conn.execute("SELECT version, filename FROM schema_migrations ORDER BY version DESC").fetchone()
+                self.assertEqual((latest["version"], latest["filename"]), ("002", "002_policy_registry.sql"))
             finally:
                 conn.close()
 
