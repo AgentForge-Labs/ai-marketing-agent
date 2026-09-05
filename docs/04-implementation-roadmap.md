@@ -57,14 +57,14 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 ## Phase 4 — Content Core
 
-- Implement verified Product Profile ingestion.
-- Implement brand voice and persona voice layers.
-- Add platform-native content templates/structured outputs.
-- Add claim verification against product facts.
-- Add required disclosure injection.
-- Add semantic similarity/fingerprint checks.
-- Add UTM/tracking metadata generation.
-- Persist prompt/model/version provenance.
+- Implement verified Product Profile ingestion. **Implemented (`load_product_profile`, schema required-keys check).**
+- Implement brand voice and persona voice layers. **Implemented (tone layering, TR/EN prefix map).**
+- Add platform-native content templates/structured outputs. **Implemented (`problem_solution`/`comparison`/`question`, unknown template rejected).**
+- Add claim verification against product facts. **Implemented (`verify_claims`: grounded patterns incl. TR `%95` order, banned phrases; violations reject, never silently rewrite).**
+- Add required disclosure injection. **Implemented (per-operation markers, e.g. post→`#ad`).**
+- Add semantic similarity/fingerprint checks. **Implemented (jaccard gate 0.20 default + sha256 fingerprint).**
+- Add UTM/tracking metadata generation. **Implemented.**
+- Persist prompt/model/version provenance. **Implemented (`content_core/1.0` + timestamp).**
 
 **Exit criteria:** the system can generate policy-valid, non-duplicate, fact-grounded channel content without human review.
 
