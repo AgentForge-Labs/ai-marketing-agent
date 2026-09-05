@@ -16,6 +16,7 @@ from .risk_router import (
 from .browser import BrowserProvider, BrowserLaunchResult, get_browser_for_tenant, get_tenant_proxy
 from .email_verification import fetch_code, fetch_link, handle_verification
 from .account_reuse import BanState, PlatformPolicy, assert_reopen_allowed, audit_record as account_reuse_audit_record
+from .analytics import AnalyticsStore, ChannelScore, compute_score
 from .adapter_compiler import (
     BROWSER_OPS,
     CompileError,
@@ -97,6 +98,9 @@ __all__ = [
     "EvasionDecision",
     "check_dead_pool",
     "evaluate_anomalies",
+    "AnalyticsStore",
+    "ChannelScore",
+    "compute_score",
     "Campaign",
     "ChannelCandidate",
     "OrchestratorState",

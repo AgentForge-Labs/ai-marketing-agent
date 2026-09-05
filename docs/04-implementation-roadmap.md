@@ -151,12 +151,12 @@ Do not implement artificial likes/upvotes, fabricated reviews, controlled-accoun
 
 ## Phase 10 — Analytics and learning loop
 
-- Capture submission/publish/verification state.
-- Capture referral/click/impression signals where APIs permit.
-- Integrate conversion events from product analytics/GA4/PostHog/webhooks as applicable.
-- Calculate channel conversion, reliability, cost, and ROI.
-- Update `channel_scores` from real outcomes.
-- Feed results into next-best-action selection.
+- Capture submission/publish/verification state. **Implemented (`record_attempt`).**
+- Capture referral/click/impression signals where APIs permit. **Implemented as generic conversion events (`record_conversion`, kind field).**
+- Integrate conversion events from product analytics/GA4/PostHog/webhooks as applicable. **Implemented (event ingestion API; provider webhooks map to `kind`/`value`).**
+- Calculate channel conversion, reliability, cost, and ROI. **Implemented (`compute_score`, `ChannelScore` properties).**
+- Update `channel_scores` from real outcomes. **Implemented (migration `005_analytics.sql`, auto-refresh on record).**
+- Feed results into next-best-action selection. **Implemented (`to_next_best_input` → orchestrator `historical_conversion`).**
 
 **Exit criteria:** static channel rank becomes a prior; real campaign outcomes continuously change execution priority.
 
