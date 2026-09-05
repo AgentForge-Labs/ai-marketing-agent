@@ -179,15 +179,17 @@ Implement end-user application surfaces:
 
 Implement SaaS foundation:
 
-- tenants/organizations;
-- users and memberships;
-- RBAC;
-- tenant isolation;
-- invites;
-- API keys;
-- usage metering;
-- subscription/plan limits;
-- admin dashboard.
+- tenants/organizations; **Implemented (`saas.py:SaaSStore`, migration `006_saas.sql`).**
+- users and memberships; **Implemented.**
+- RBAC; **Implemented (`require_role`, owner>admin>editor>viewer).**
+- tenant isolation; **Implemented (`assert_same_tenant`, cross-tenant denied, no exceptions).**
+- invites; **Deferred: membership invite tokens ride the existing member flow (tracked, no separate table yet).**
+- API keys; **Implemented (hash-only storage, timing-safe auth, revoke).**
+- usage metering; **Implemented (monthly periods).**
+- subscription/plan limits; **Implemented (quota + kill-switch pause).**
+- admin dashboard. **Deferred to web layer (Faz 11 UI); backend controls above are the enforcement surface.**
+
+End-user surfaces (onboarding, wizard, catalogue views, persona/content/calendar/URLs/health/analytics/audit/settings screens) remain web-layer work; this phase delivers the enforceable backend contract they will call.
 
 **Exit criteria:** a tenant can configure a product/campaign and observe autonomous execution and outcomes without operating the underlying workers manually.
 
