@@ -61,7 +61,9 @@ class LiveProofTests(unittest.TestCase):
 
     def test_mouse_profile_rejects_secrets(self):
         bad = good_profile()
-        bad["api_key"] = "sk-live-ABCDEFGHIJ123456"
+        # NOTE: must NOT match scripts/scan_secrets.py patterns (CI hygiene fails
+        # closed otherwise); validator keys off the api_key field name + 16+ chars.
+        bad["api_key"] = "FIXTURE-NOT-A-SECRET-0123456789"
         root = fake_root({"services/biometric-mouse/profile/mouse_profile.json": json.dumps(bad)})
         res = clp.check_mouse_profile(root)
         self.assertEqual(res["status"], "invalid")
