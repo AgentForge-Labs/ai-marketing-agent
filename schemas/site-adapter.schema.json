@@ -417,6 +417,15 @@
             "subjectContains": {
               "type": "string"
             },
+            "fromContains": {
+              "type": "string",
+              "description": "Gönderen adres filtresi (örn. noreply@site.com)."
+            },
+            "allowedDomains": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Zorunlu güvenlik alanı: link SADECE bu domainlerden birindeyse açılır. Boş/yoksa generic link asla açılmaz (fail-closed)."
+            },
             "linkPattern": {
               "type": "string",
               "description": "Tıklanacak doğrulama bağlantısının regex deseni."
