@@ -70,14 +70,14 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 ## Phase 5 — Adapter compiler and dry-run runtime
 
-- Implement bounded adapter DSL compiler; no free-form JavaScript or `eval`.
-- Implement Playwright primitives for navigation, fields, uploads, actions, waits, and assertions.
-- Implement official API adapter runner.
-- Implement dry-run mode that fills without submit.
-- Capture redacted before/filled screenshots and sanitized form contracts.
-- Implement form fingerprinting and drift detection.
-- Implement autonomous discovery/self-healing candidate generation.
-- Promote adapter changes only after schema validation, dry-run, confidence threshold, and regression gates.
+- Implement bounded adapter DSL compiler; no free-form JavaScript or `eval`. **Implemented (`adapter_compiler.py:compile_flow`, deep-scan rejects eval/javascript/__proto__, op whitelist).**
+- Implement Playwright primitives for navigation, fields, uploads, actions, waits, and assertions. **Implemented (goto/fill/select/check/upload/click/waitFor/assertText/assertUrl/extract/captureScreenshot).**
+- Implement official API adapter runner. **Implemented (`compile_api_flow`, vault:// headers enforced, idempotency + expectStatus).**
+- Implement dry-run mode that fills without submit. **Implemented (`dry_run=True` → submit becomes no-op assertion).**
+- Capture redacted before/filled screenshots and sanitized form contracts. **Implemented as plan steps (`captureScreenshot` redacted).**
+- Implement form fingerprinting and drift detection. **Implemented (`fingerprint_form` sha256 + `detect_drift` → needs_remap).**
+- Implement autonomous discovery/self-healing candidate generation. **Implemented (`gate_promotion`: schema + dry-run + confidence ≥ 0.85 + regression, else quarantine).**
+- Promote adapter changes only after schema validation, dry-run, confidence threshold, and regression gates. **Implemented.**
 
 **Exit criteria:** pilot adapters can discover/fill/assert deterministically and drift moves to autonomous remap/quarantine rather than uncontrolled execution.
 
