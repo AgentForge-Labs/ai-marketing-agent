@@ -46,12 +46,12 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 ## Phase 3 — Persona Engine and identity registry
 
-- Implement 1,000+ persona definitions with voice, locale, timezone, channel eligibility, disclosure profile, and content history.
-- Implement account/session references without storing secrets in Git or plaintext DB columns.
-- Integrate Vault/KMS/managed secret provider abstraction.
-- Implement OAuth token refresh and authorized TOTP generation.
-- Enforce channel account/multi-account policy during persona-to-account mapping.
-- Implement automatic session health checks and quarantine on access challenges.
+- Implement 1,000+ persona definitions with voice, locale, timezone, channel eligibility, disclosure profile, and content history. **Implemented (`persona.py:Persona/PersonaRegistry`, migration `004_persona_registry.sql`).**
+- Implement account/session references without storing secrets in Git or plaintext DB columns. **Implemented (vault:// only, DB trigger rejects plaintext).**
+- Integrate Vault/KMS/managed secret provider abstraction. **Implemented (`vault.py`: `VaultProvider` protocol + `EnvVault`; production plugs HashiCorp Vault/KMS).**
+- Implement OAuth token refresh and authorized TOTP generation. **Implemented (`refresh_oauth_token`, stdlib RFC 6238 `totp_now`).**
+- Enforce channel account/multi-account policy during persona-to-account mapping. **Implemented (`register_account` + `assert_reopen_allowed` entitlement gate).**
+- Implement automatic session health checks and quarantine on access challenges. **Implemented (`session_health`, `quarantine_account`).**
 
 **Exit criteria:** the orchestrator can select an eligible persona/account/session autonomously while respecting channel identity policy.
 
