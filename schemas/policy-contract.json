@@ -36,6 +36,12 @@
     "ban/suspension circumvention via identity/IP rotation",
     "scraping/submitting through explicitly blocked endpoints after platform block"
   ],
+  "accountReuse": {
+    "rule": "same-IP-or-same-profile-second-account-forbidden",
+    "description": "Aynı platformda ikinci hesap, banlı (veya aktif) hesabın IP'sini ya da browser profilini TEK BAŞINA yeniden kullanamaz. Yeni hesap yalnızca hem profil HEM IP birlikte yenilenirse açılabilir ve yeni kimlik olarak audit kaydıyla izole edilir. Yalnızca birini yenilemek yasaktır (bağlantı kurulur → ban evasion sayılır).",
+    "forbidden": ["same IP + different profile", "same profile + different IP", "reusing banned account IP/profile"],
+    "allowed": "fresh browser profile AND fresh IP together, registered as a new audited identity"
+  },
   "references": {
     "runtime": [
       "src/ai_marketing_agent/risk_router.py:PlatformRiskRouter(max_autonomous_risk)",

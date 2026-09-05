@@ -135,6 +135,18 @@ for rel, pat, label in stale:
     else:
         ok(f"{rel}: stale gone ({label})")
 
+# 7. Account-reuse rule must exist in contract and be referenced by identity + architecture docs
+if CONTRACT.get("accountReuse", {}).get("rule") != "same-IP-or-same-profile-second-account-forbidden":
+    fail("contract accountReuse.rule must be same-IP-or-same-profile-second-account-forbidden")
+else:
+    ok("contract accountReuse rule present")
+for rel in ["docs/01-identity-strategy.md", "docs/03-automation-architecture.md"]:
+    text = (ROOT / rel).read_text(encoding="utf-8")
+    if "fresh profile AND a fresh IP" not in text and "fresh browser profile AND a fresh IP" not in text:
+        fail(f"{rel} missing account-reuse rule (fresh profile AND fresh IP)")
+    else:
+        ok(f"{rel}: account-reuse rule")
+
 if errors:
     print(f"\n{len(errors)} contract violation(s). Fix schemas/policy-contract.json or the layer above.")
     sys.exit(1)

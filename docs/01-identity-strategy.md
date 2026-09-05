@@ -46,6 +46,7 @@ Minimum persona fields:
 - Never create fabricated customer identities, testimonials, or reviews.
 - Required affiliation/sponsorship disclosure must be preserved.
 - Multi-account behavior must follow channel policy. If a platform permits one account only, multiple personas remain content/voice variants behind that authorized account.
+- Account reuse rule (canonical `schemas/policy-contract.json:accountReuse`): a second account on the same platform must never reuse the banned (or any active) account's IP or browser profile alone — same IP + different profile and same profile + different IP are both forbidden. A new account is allowed only with BOTH a fresh browser profile AND a fresh IP, registered as a new audited identity.
 - A persona never grants permission to bypass a ban/suspension by rotating identity/IP. Per canonical `schemas/policy-contract.json` (v1.0.0, `maxAutonomousRisk: High`), CAPTCHA/security challenges on `Low`/`Moderate`/`High` per-action are solved via the audited `auto_ensemble`; `Very High`/`Critical` go to `auto_quarantine`.
 
 ## 4. Account and credential registry
