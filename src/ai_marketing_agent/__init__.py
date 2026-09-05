@@ -31,6 +31,9 @@ from .content_core import ContentArtifact, ContentRequest, fingerprint, generate
 from .engagement import EngagementEvent, EngagementOutcome, RateLimiter, draft_reply, gate_event, handle_event
 from .orchestrator import Campaign, ChannelCandidate, OrchestratorState, next_best_action, release, score_channel
 from .discovery import extract_page_model
+from .metrics import Metrics, get_metrics
+from .orchestrator import AccountPacer, PacingRule
+from .privacy import ConsentRegistry, erase_subject, partition_expired, retention_cutoff
 from .perf import SLO, TTLCache, ConcurrencyGate, BenchmarkResult, benchmark
 from .rollout import GATE_ITEMS, GateEvidence, GateVerdict, evaluate_gate, rollout_order
 from .saas import SaaSStore, Tenant
@@ -116,6 +119,14 @@ __all__ = [
     "BenchmarkResult",
     "benchmark",
     "extract_page_model",
+    "Metrics",
+    "get_metrics",
+    "ConsentRegistry",
+    "retention_cutoff",
+    "partition_expired",
+    "erase_subject",
+    "AccountPacer",
+    "PacingRule",
     "SaaSStore",
     "Tenant",
     "Campaign",

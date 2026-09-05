@@ -96,6 +96,11 @@ class AutonomousRunner:
 
     def _log(self, event: str, detail: Dict[str, Any]) -> None:
         self.audit.append({"ts": time.time(), "event": event, "detail": detail})
+        try:
+            from .metrics import get_metrics
+            get_metrics().inc("runner_events_total", event=event)
+        except Exception:
+            pass
 
     async def _maybe_handle_captcha(self, page: Any, task_hint: Optional[CaptchaTask] = None) -> bool:
         """Agentic captcha ensemble — only if policy allows auto_ensemble and per-action risk != Very High/Critical."""

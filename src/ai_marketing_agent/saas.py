@@ -135,3 +135,34 @@ class SaaSStore:
             raise PermissionError(f"tenant {tenant_id} is paused (kill switch)")
         if self.quota_remaining(tenant_id) <= 0:
             raise PermissionError(f"tenant {tenant_id} quota exhausted")
+
+    # -- consent ledger (GDPR Art.6/7) + retention (Art.5.1.e) --
+    def grant_consent(self, tenant_id: str, subject_id: str, purpose: str) -> None:
+        """Fail-closed: runner/orchestrator must check has_consent before acting."""
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO consents(tenant_id, subject_id, purpose, granted, decided_at) VALUES(?,?,?,?,?) "
+                "ON CONFLICT(tenant_id, subject_id, purpose) DO UPDATE SET granted=1, decided_at=excluded.decided_at",
+                (tenant_id, subject_id, purpose, 1, _utc_now()),
+            )
+
+    def withdraw_consent(self, tenant_id: str, subject_id: str, purpose: str) -> None:
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO consents(tenant_id, subject_id, purpose, granted, decided_at) VALUES(?,?,?,?,?) "
+                "ON CONFLICT(tenant_id, subject_id, purpose) DO UPDATE SET granted=0, decided_at=excluded.decided_at",
+                (tenant_id, subject_id, purpose, 0, _utc_now()),
+            )
+
+    def has_consent(self, tenant_id: str, subject_id: str, purpose: str) -> bool:
+        row = self.conn.execute(
+            "SELECT granted FROM consents WHERE tenant_id=? AND subject_id=? AND purpose=?",
+            (tenant_id, subject_id, purpose),
+        ).fetchone()
+        return bool(row and row["granted"])
+
+    def purge_consents_before(self, cutoff_iso: str) -> int:
+        """Delete consent rows decided before cutoff (storage limitation). Returns rows removed."""
+        with self.conn:
+            cur = self.conn.execute("DELETE FROM consents WHERE decided_at < ?", (cutoff_iso,))
+            return cur.rowcount or 0
