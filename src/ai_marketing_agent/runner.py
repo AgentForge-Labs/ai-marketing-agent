@@ -116,13 +116,53 @@ class AutonomousRunner:
         self._log("captcha_ensemble_failed_quarantine", {"error": result.error})
         return False
 
-    async def run_browser_flow(self, page: Any, flow: Dict[str, Any], adapter: Dict[str, Any]) -> RunnerResult:
+    @staticmethod
+    async def _evaluate_success_signals(page: Any, success: List[Dict[str, Any]]) -> tuple[bool, List[Dict[str, Any]]]:
+        """Evaluate adapter success signals against the SAME page/session that submitted.
+
+        Never uses a separate browser session for the verdict. Returns
+        (any_passed, per_signal_results). Empty signal list → (False, []).
+        """
+        results: List[Dict[str, Any]] = []
+        for sig in success or []:
+            kind = (sig or {}).get("kind")
+            matches = (sig or {}).get("matches", "")
+            ok = False
+            try:
+                if kind == "url":
+                    ok = bool(matches) and matches in (getattr(page, "url", "") or "")
+                elif kind == "text":
+                    content = await page.content()
+                    ok = bool(matches) and matches in (content or "")
+                elif kind == "selector":
+                    ok = bool(matches) and await page.locator(matches).count() > 0
+                else:
+                    ok = False
+            except Exception:
+                ok = False
+            results.append({"kind": kind, "matches": matches, "ok": ok})
+        return (any(r["ok"] for r in results), results)
+
+    async def run_browser_flow(
+        self,
+        page: Any,
+        flow: Dict[str, Any],
+        adapter: Dict[str, Any],
+        values: Optional[Dict[str, Any]] = None,
+    ) -> RunnerResult:
         """
         Execute a single site flow (register, submitListing, etc.) with:
           - HumanMouse for every click/move (biometric, always for Low/Moderate/High)
-          - SemanticBrowser for drift repair / discovery
+          - SemanticBrowser for drift repair / discovery logging only
           - Captcha ensemble on challenge
+          - Fail-closed completion: required-field failures abort; success verdict
+            comes ONLY from adapter `success` signals evaluated on the SAME page.
+
+        `values` maps field `valueFrom` → real value (resolved by caller, e.g.
+        Content Core). There is no placeholder fill in the prod path: a required
+        field without a resolvable value fails the run.
         """
+        values = values if values is not None else {}
         # 1. Authorize biometric — per-action Low/Moderate/High always
         if self.config.biometric_enabled:
             try:
@@ -166,8 +206,20 @@ class AutonomousRunner:
             fields.extend(step.get("fields", []))
 
         for field in fields:
+            value_from = field.get("valueFrom")
+            required = bool(field.get("required", False))
+            value = values.get(value_from) if value_from else None
+            if value is None:
+                if required:
+                    self._log("missing_value_fail_closed", {"field": value_from})
+                    return RunnerResult(status="failed", detail={"reason": f"missing_value:{value_from}"}, audit=self.audit)
+                self._log("skip_optional_unresolved", {"field": value_from})
+                continue
             locators = field.get("locators", [])
             if not locators or not page:
+                if required:
+                    self._log("missing_locator_fail_closed", {"field": value_from})
+                    return RunnerResult(status="failed", detail={"reason": f"missing_locator:{value_from}"}, audit=self.audit)
                 continue
             # Resolve locator: prefer role/label, fallback css
             loc = None
@@ -187,19 +239,24 @@ class AutonomousRunner:
                 except Exception:
                     continue
             if loc is None:
-                self._log("locator_not_found", {"field": field.get("valueFrom")})
+                if required:
+                    self._log("locator_not_found_fail_closed", {"field": value_from})
+                    return RunnerResult(status="failed", detail={"reason": f"locator_not_found:{value_from}"}, audit=self.audit)
+                self._log("locator_not_found", {"field": value_from})
                 continue
-            # Human-like fill
+            # Human-like fill with the resolved real value (no placeholders in prod path)
             try:
                 if mouse:
                     await mouse.click_element(loc)
                 else:
                     await loc.click()
-                # Value is resolved from product-profile via adapter compiler (vault:// not here)
-                await loc.fill("test-value")  # placeholder — real runner resolves valueFrom
-                self._log("fill", {"field": field.get("valueFrom"), "locator": locators[0]})
+                await loc.fill(str(value))
+                self._log("fill", {"field": value_from, "locator": locators[0]})
             except Exception as e:
-                self._log("fill_failed", {"field": field.get("valueFrom"), "error": str(e)[:200]})
+                if required:
+                    self._log("fill_failed_fail_closed", {"field": value_from, "error": str(e)[:200]})
+                    return RunnerResult(status="failed", detail={"reason": f"fill_failed:{value_from}"}, audit=self.audit)
+                self._log("fill_failed", {"field": value_from, "error": str(e)[:200]})
 
         # 5. Captcha pre-scan — if challenge detected, run ensemble
         # Detection: check for sitekey, turnstile, geetest elements
@@ -238,7 +295,18 @@ class AutonomousRunner:
             except Exception as e:
                 return RunnerResult(status="failed", detail={"reason": f"submit failed: {e}"}, audit=self.audit)
 
-        # 7. Success assertion (multi-signal) — semantic delta if available
+        # 7. Success assertion — adapter `success` signals evaluated on the SAME
+        # page/session that submitted. A separate semantic session is NEVER the
+        # verdict source; it is only kept for drift logging.
+        success_signals: List[Dict[str, Any]] = flow.get("success", []) or []
+        if not success_signals:
+            if semantic:
+                try:
+                    await semantic.close()
+                except Exception:
+                    pass
+            self._log("no_success_signals_fail_closed", {})
+            return RunnerResult(status="failed", detail={"reason": "no_success_signals"}, audit=self.audit)
         if semantic:
             try:
                 obs_after = await semantic.observe()
@@ -250,6 +318,10 @@ class AutonomousRunner:
                     await semantic.close()
                 except Exception:
                     pass
+        passed, signal_results = await self._evaluate_success_signals(page, success_signals)
+        self._log("success_assertion", {"passed": passed, "signals": signal_results})
+        if not passed:
+            return RunnerResult(status="failed", detail={"reason": "success_assertion_failed", "signals": signal_results}, audit=self.audit)
 
         # 8. Email verification — Gmail + custom IMAP, vault://, per-tenant proxy aware
         email_flow = adapter.get("flows", {}).get("emailVerification") if isinstance(adapter.get("flows"), dict) else None
@@ -289,6 +361,7 @@ class AutonomousRunner:
         tenant_id: Optional[str] = None,
         profile_id: Optional[str] = None,
         is_discovery: bool = False,
+        values: Optional[Dict[str, Any]] = None,
     ) -> RunnerResult:
         """
         Discovery ve normal mod aynı provider — MultiLogin yoksa headed, proxy per-tenant.
@@ -308,6 +381,6 @@ class AutonomousRunner:
             {"mode": launched.mode, "proxy_used": bool(launched.proxy_used), "is_discovery": is_discovery, "tenant": tenant_id},
         )
         try:
-            return await self.run_browser_flow(launched.page, flow, adapter)
+            return await self.run_browser_flow(launched.page, flow, adapter, values=values)
         finally:
             await provider.close(launched)
