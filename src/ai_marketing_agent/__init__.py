@@ -30,6 +30,7 @@ from .adapter_compiler import (
 from .content_core import ContentArtifact, ContentRequest, fingerprint, generate_content, jaccard_similarity, verify_claims
 from .engagement import EngagementEvent, EngagementOutcome, RateLimiter, draft_reply, gate_event, handle_event
 from .orchestrator import Campaign, ChannelCandidate, OrchestratorState, next_best_action, release, score_channel
+from .saas import SaaSStore, Tenant
 from .evasion import AnomalySignals, DeadPool, EvasionDecision, check_dead_pool, evaluate as evaluate_anomalies
 from .persona import Persona, PersonaRegistry, refresh_oauth_token, totp_now
 from .policy_crawler import CrawlSignals, crawl_policy
@@ -101,6 +102,8 @@ __all__ = [
     "AnalyticsStore",
     "ChannelScore",
     "compute_score",
+    "SaaSStore",
+    "Tenant",
     "Campaign",
     "ChannelCandidate",
     "OrchestratorState",
