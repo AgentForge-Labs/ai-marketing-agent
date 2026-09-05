@@ -16,6 +16,16 @@ from .risk_router import (
 from .browser import BrowserProvider, BrowserLaunchResult, get_browser_for_tenant, get_tenant_proxy
 from .email_verification import fetch_code, fetch_link, handle_verification
 from .account_reuse import BanState, PlatformPolicy, assert_reopen_allowed, audit_record as account_reuse_audit_record
+from .adapter_compiler import (
+    BROWSER_OPS,
+    CompileError,
+    PromotionGates,
+    compile_api_flow,
+    compile_flow,
+    detect_drift,
+    fingerprint_form,
+    gate_promotion,
+)
 from .content_core import ContentArtifact, ContentRequest, fingerprint, generate_content, jaccard_similarity, verify_claims
 from .persona import Persona, PersonaRegistry, refresh_oauth_token, totp_now
 from .policy_crawler import CrawlSignals, crawl_policy
@@ -55,6 +65,14 @@ __all__ = [
     "account_reuse_audit_record",
     "CrawlSignals",
     "crawl_policy",
+    "BROWSER_OPS",
+    "CompileError",
+    "PromotionGates",
+    "compile_api_flow",
+    "compile_flow",
+    "detect_drift",
+    "fingerprint_form",
+    "gate_promotion",
     "ContentArtifact",
     "ContentRequest",
     "fingerprint",
