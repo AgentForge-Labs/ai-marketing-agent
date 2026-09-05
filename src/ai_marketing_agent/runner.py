@@ -326,9 +326,8 @@ class AutonomousRunner:
         # 8. Email verification — Gmail + custom IMAP, vault://, per-tenant proxy aware
         email_flow = adapter.get("flows", {}).get("emailVerification") if isinstance(adapter.get("flows"), dict) else None
         if email_flow and email_flow.get("kind") == "email":
-            mailbox_ref = email_flow.get("mailbox", {}).get("mailboxRef", "vault://mail/imap/default")
-            subject_contains = email_flow.get("mailbox", {}).get("subjectContains")
-            from_contains = email_flow.get("mailbox", {}).get("fromContains")
+            mailbox = email_flow.get("mailbox", {})
+            mailbox_ref = mailbox.get("mailboxRef", "vault://mail/imap/default")
             # Only run if page indicates verification pending or flow expects it
             try:
                 ev_result = await handle_verification(
@@ -336,8 +335,13 @@ class AutonomousRunner:
                     mailbox_ref=mailbox_ref,
                     tenant_id=str(self.decision.domain),
                     code_selector="input[name='code'], input[name='otp'], input[type='text']",
-                    subject_contains=subject_contains,
-                    from_contains=from_contains,
+                    link_pattern=mailbox.get("linkPattern"),
+                    allowed_domains=mailbox.get("allowedDomains"),
+                    process_mode=mailbox.get("processMode", "clickLink"),
+                    mark_processed=bool(mailbox.get("markProcessed", True)),
+                    subject_contains=mailbox.get("subjectContains"),
+                    from_contains=mailbox.get("fromContains"),
+                    idempotency_key=f"{self.decision.domain}:{flow.get('entryUrl') or 'flow'}:email",
                 )
                 self._log("email_verification", ev_result)
             except Exception as e:
