@@ -34,13 +34,13 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 ## Phase 2 — Persistence, queue, audit and idempotency
 
-- Implement PostgreSQL production schema and migrations.
-- Add tenant-aware records for sites, policies, personas, campaigns, contents, adapters, jobs, submissions, risk decisions, engagement events, conversions, and audit events.
-- Implement durable queue leases and worker recovery.
-- Implement retry/backoff and dead-letter/quarantine behavior.
-- Implement deterministic idempotency keys.
-- Implement append-only audit trail.
-- Add redaction for logs, screenshots, traces, and error payloads.
+- Implement PostgreSQL production schema and migrations. **Implemented (`database/migrations_pg/003_production_schema.sql`, `scripts/migrate_pg.py` via `DATABASE_URL`; SQLite prototype untouched for tests).**
+- Add tenant-aware records for sites, policies, personas, campaigns, contents, adapters, jobs, submissions, risk decisions, engagement events, conversions, and audit events. **Implemented in PG schema (tenants→audit_log, append-only trigger).**
+- Implement durable queue leases and worker recovery. **Implemented (`queue.py`: lease, `recover_stalled`).**
+- Implement retry/backoff and dead-letter/quarantine behavior. **Implemented (`fail_job` backoff → `dead_letter`, `quarantine_job`).**
+- Implement deterministic idempotency keys. **Implemented (`idempotency_key` sha256 + unique constraint, duplicate enqueue returns existing).**
+- Implement append-only audit trail. **Implemented (PG trigger + `queue_audit`).**
+- Add redaction for logs, screenshots, traces, and error payloads. **Implemented (200-char truncation, no secrets in queue tables).**
 
 **Exit criteria:** duplicate external actions are prevented and every action/decision is fully attributable.
 
