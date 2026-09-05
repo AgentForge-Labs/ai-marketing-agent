@@ -1,0 +1,9 @@
+# Runtime dependencies (floor pins). Exact pins: requirements.lock
+# Vendored (no install needed): services/captcha-ensemble/twocaptcha (2captcha),
+#   services/captcha-ensemble/ai_utils.py, services/biometric-mouse/ai_mouse
+requests>=2.31,<3
+
+# Optional live integrations (vault-backed; CI mock'lı, kurulum zorunlu değil):
+# google-api-python-client>=2.0  # Gmail API (vault://mail/gmail/oauth)
+# google-auth>=2.0                # OAuth refresh
+# playwright>=1.40               # BrowserProvider (vault://proxy/* ile)

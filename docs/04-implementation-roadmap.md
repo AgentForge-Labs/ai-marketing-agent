@@ -2,18 +2,20 @@
 
 This roadmap implements the architecture in `03-automation-architecture.md`. Every phase assumes the same target model: **0-HITL, automatic submit, 1,000+ persona support, anomaly-aware Evasion Layer, and autonomous Engagement Bot**. No routine human approval queue is part of the target runtime.
 
-## Phase 0 — Repository and contracts
+## Phase 0 — Repository and contracts (Python)
 
-- Create TypeScript/Node.js workspace and package boundaries.
-- Add package manager lockfile and `tsconfig`.
-- Define runtime configuration and environment validation.
-- Add database migration framework.
-- Add CI: lint, typecheck, schema tests, unit tests, integration tests, security scans.
-- Make `docs/03-automation-architecture.md` the canonical architecture contract.
+> Not: bu repo Python implementasyonudur; eski TypeScript/Node maddeleri ertelendi (web/SaaS katmanı Faz 11'de ayrıca ele alınacak).
+
+- Python package boundaries (`src/ai_marketing_agent/`).
+- `requirements.txt` (floor pins) + hash-pinned `requirements.lock`; `pip install -r requirements.lock` reproduces CI.
+- Define runtime configuration and environment validation (vault `vault://` refs, `docs/05-vault-credentials-mapping.md`).
+- Add database migration framework (`database/migrations/`, checksum-tracked).
+- Add CI (`.github/workflows/ci.yml`): `check_policy_contract.py`, full unittest, schema validation (`validate_schemas.py`), `compileall`, secret scan (`scan_secrets.py`).
+- Make `schemas/policy-contract.json` v1.0.0 the canonical machine-readable contract (`docs/03` is its prose rendering).
 - Remove approval/manual execution modes from active schemas; keep only autonomous execution contracts.
-- Add schema/fixtures tests for all JSON examples.
+- Add schema/fixtures tests for all JSON examples (`tests/test_workspace_ci.py`).
 
-**Exit criteria:** a clean checkout can install, validate all contracts, run tests, and build deterministically.
+**Exit criteria:** a clean checkout can `pip install -r requirements.lock`, validate all contracts, run tests green, and pass secret scan deterministically.
 
 ## Phase 1 — Data and policy foundation
 
