@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .browser import BrowserProvider, get_browser_for_tenant
-from .captcha_ensemble import CaptchaTask, solve_captcha
+from .captcha_ensemble import CaptchaTask, inject_token, solve_captcha
 from .email_verification import handle_verification
 from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import get_human_mouse
@@ -51,9 +51,18 @@ class RunnerConfig:
 
     @classmethod
     def from_adapter(cls, adapter: Dict[str, Any]) -> "RunnerConfig":
+        from .vault import require_vault_ref
+
         cap = adapter.get("captcha", {})
         bio = adapter.get("biometricMouse", {})
         sem = adapter.get("semanticBrowser", {})
+        # Fail-closed: declared secret refs must be vault:// (never plaintext).
+        for section, key in (("capSolver", "apiKeyRef"), ("twoCaptcha", "apiKeyRef"), ("aiLmm", "apiKeyRef")):
+            ref = (cap.get(section) or {}).get("apiKeyRef")
+            if ref is not None:
+                require_vault_ref(ref, field=f"captcha.{section}.apiKeyRef")
+        if bio.get("profileRef") is not None:
+            require_vault_ref(bio["profileRef"], field="biometricMouse.profileRef")
         return cls(
             captcha_policy=cap.get("policy", "abort_and_notify"),
             captcha_strategy=cap.get("strategy", "auto_ensemble"),
@@ -105,10 +114,10 @@ class AutonomousRunner:
         result = await solve_captcha(task, authorization=self.auth)
         self._log("captcha_ensemble", {"solver": result.solver, "success": result.success, "error": result.error})
         if result.success:
-            # Inject token where needed (e.g., g-recaptcha-response)
+            # Inject token where needed via safe arg passing (never interpolated).
             if result.token and page:
                 try:
-                    await page.evaluate(f"document.getElementById('g-recaptcha-response').innerHTML='{result.token}'")
+                    await inject_token(page, "g-recaptcha-response", result.token)
                 except Exception:
                     pass
             return True

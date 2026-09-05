@@ -253,6 +253,20 @@ async def _solve_with_lmm(task: CaptchaTask) -> CaptchaResult:
         return CaptchaResult(solver="ai_lmm", success=False, error=str(e))
 
 
+async def inject_token(page: Any, element_id: str = "g-recaptcha-response", token: str = "") -> None:
+    """Inject a solved token WITHOUT string interpolation.
+
+    The token travels as a JS argument, never inside the evaluated source, so a
+    crafted token cannot break out into script execution or land in logs/traces.
+    """
+    if not token:
+        raise ValueError("empty token")
+    await page.evaluate(
+        "(args) => { const el = document.getElementById(args.id); if (el) { el.innerHTML = args.token; } }",
+        {"id": element_id, "token": token},
+    )
+
+
 async def _solve_with_buster(task: CaptchaTask) -> CaptchaResult:
     """teal33t/captcha_bypass — Buster audio solver + B-spline mouse."""
     try:

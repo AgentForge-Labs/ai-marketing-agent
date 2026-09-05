@@ -48,10 +48,10 @@ from .submit import (
 )
 from .policy_registry import PolicyRecord, PolicyRegistry, evaluate_policy_gate
 from .queue import complete_job, enqueue, fail_job, idempotency_key, lease_next_job, quarantine_job, recover_stalled
-from .vault import EnvVault, resolve_secret
+from .vault import EnvVault, require_vault_ref, resolve_secret
 from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import HumanMouse, get_human_mouse
-from .captcha_ensemble import CaptchaResult, CaptchaTask, solve_captcha
+from .captcha_ensemble import CaptchaResult, CaptchaTask, inject_token, solve_captcha
 from .semantic_browser import SemanticBrowser, get_semantic_browser
 from .runner import AutonomousRunner, RunnerConfig, RunnerResult
 
@@ -142,6 +142,7 @@ __all__ = [
     "totp_now",
     "EnvVault",
     "resolve_secret",
+    "require_vault_ref",
     "complete_job",
     "enqueue",
     "fail_job",
@@ -158,6 +159,7 @@ __all__ = [
     "get_human_mouse",
     "CaptchaTask",
     "CaptchaResult",
+    "inject_token",
     "solve_captcha",
     "SemanticBrowser",
     "get_semantic_browser",

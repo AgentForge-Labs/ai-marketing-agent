@@ -35,10 +35,27 @@ except Exception:  # pragma: no cover
     _SEMANTIC_AVAILABLE = False
 
 
+LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+
 def _resolve_service_url(ref: str) -> str:
-    if ref.startswith("vault://"):
-        return os.getenv("SEMANTIC_BROWSER_URL") or "http://127.0.0.1:8765"
-    return ref
+    """Resolve vault:// or plain URL, then pin to loopback (DNS-rebinding guard).
+
+    Remote hosts are rejected unless SEMANTIC_BROWSER_ALLOW_REMOTE=1, so a
+    malicious page/redirect can never re-point the local service at an
+    attacker host.
+    """
+    from urllib.parse import urlsplit
+
+    url = os.getenv("SEMANTIC_BROWSER_URL") or "http://127.0.0.1:8765" if ref.startswith("vault://") else ref
+    try:
+        host = (urlsplit(url).hostname or "").lower().rstrip(".")
+    except Exception:
+        raise ValueError(f"invalid semantic-browser service URL: {url!r}")
+    if host not in LOOPBACK_HOSTS and os.getenv("SEMANTIC_BROWSER_ALLOW_REMOTE") != "1":
+        raise ValueError(f"semantic-browser service must be loopback (got host {host!r}); "
+                         "set SEMANTIC_BROWSER_ALLOW_REMOTE=1 to override explicitly")
+    return url
 
 
 class SemanticBrowser:
