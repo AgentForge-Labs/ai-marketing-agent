@@ -125,14 +125,14 @@ Implement CAPTCHA solving (`auto_ensemble`) and biometric-human input shaping pe
 
 ## Phase 8 — Engagement Bot
 
-- Implement event ingestion for comments, replies, inbound messages, listing questions, and launch-thread updates where supported.
-- Fetch thread/account context.
-- Run consent/policy gate.
-- Generate persona/brand-consistent response.
-- Validate claims/disclosure/similarity/rate limits.
-- Execute eligible replies automatically.
-- Persist response linkage and engagement outcome.
-- Quarantine unsupported or ambiguous interactions.
+- Implement event ingestion for comments, replies, inbound messages, listing questions, and launch-thread updates where supported. **Implemented (`engagement.py:EngagementEvent`, eligible kinds reply/answer/follow_up/update/route).**
+- Fetch thread/account context. **Implemented (thread/account fields on event).**
+- Run consent/policy gate. **Implemented (`gate_event`: owned-content + opt-in checks; prohibited/unknown kinds denied).**
+- Generate persona/brand-consistent response. **Implemented (`draft_reply` from thread context + verified facts).**
+- Validate claims/disclosure/similarity/rate limits. **Implemented (`verify_claims`, `#ad` disclosure, jaccard gate, `RateLimiter` sliding window).**
+- Execute eligible replies automatically. **Implemented (`handle_event` pipeline).**
+- Persist response linkage and engagement outcome. **Implemented (`EngagementOutcome` + audit).**
+- Quarantine unsupported or ambiguous interactions. **Implemented.**
 
 Do not implement artificial likes/upvotes, fabricated reviews, controlled-account amplification, mass unsolicited DMs, or unrelated mass commenting.
 
