@@ -95,14 +95,14 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 ## Phase 6 — Automatic submit and verification
 
-- Enable automatic submit for policy-valid pilot adapters.
-- Run pre-submit idempotency checks.
-- Implement multi-signal success assertion.
-- Implement remote object lookup before retrying ambiguous outcomes.
-- Implement automatic email verification for authorized accounts.
-- Implement automatic TOTP where authorized.
+- Enable automatic submit for policy-valid pilot adapters. **Runner path implemented (#18 fail-closed); live pilot runs stay manual checklist.**
+- Run pre-submit idempotency checks. **Implemented (`submit.py:pre_submit_check`, duplicate returns existing).**
+- Implement multi-signal success assertion. **Implemented in runner (#18, same-session signals).**
+- Implement remote object lookup before retrying ambiguous outcomes. **Implemented (`resolve_ambiguous`: adopt existing / queue-new-version / quarantine; no finder → quarantine).**
+- Implement automatic email verification for authorized accounts. **Implemented (#19).**
+- Implement automatic TOTP where authorized. **Implemented (#6 `totp_now`).**
 - Solve CAPTCHA/security challenges on `Low`/`Moderate`/`High` per-action via `auto_ensemble` per `schemas/policy-contract.json`; `Very High`/`Critical` or ensemble exhaustion go to `auto_quarantine`.
-- Store resulting listing/post IDs and URLs.
+- Store resulting listing/post IDs and URLs. **Implemented (`record_submission`, `pilot_checklist` 5×3 gate).**
 
 **Exit criteria:** at least five allowed pilot channels complete three consecutive autonomous submit-and-verify E2E runs without duplicate actions.
 
