@@ -1,20 +1,22 @@
 """
-Agentic CAPTCHA ensemble — per-action, site değil eylem bazlı — 2captcha (primary) → ai-captcha-bypass (LMM) → buster → quarantine.
+Agentic CAPTCHA ensemble — per-action, site değil eylem bazlı — capsolver (primary) → 2captcha (coverage) → ai-captcha-bypass (LMM) → buster → quarantine.
 
-Güncel Politika (Kullanıcı onayı):
+Güncel Politika (schemas/policy-contract.json v1.0.0, maxAutonomousRisk=High):
 - Risk site çapında değil, sitede yapılacak eyleme göre belirlenir. Eylem Very High/Critical değilse (Low/Moderate/High), site riskli grupta olsa bile CAPTCHA çıkarsa bu ensemble denenir.
 - High riskli grupta olsa bile, Very High değilse ensemble kullanılır (site geneli High olsa bile per-action High → auto_with_verification + ensemble).
 - Very High/Critical eylemlerde ensemble denenmez, doğrudan auto_quarantine (ban atlatma değil).
 - Biometric mouse (wassim-sayah/biometric-mouse) HER ZAMAN her browser eylemde kullanılır (fallback Playwright B-spline).
-- Kütüphaneler her zaman kullanılabilir: 2captcha/2captcha-python (794★), aydinnyunus/ai-captcha-bypass (GPT-4o/Gemini, 1.2k★), teal33t/captcha_bypass (buster + B-spline mouse).
+- Servis sırası 2026 fiyat/performans araştırmasına göre: CapSolver en iyi fiyat/performans (AI, $0.80/1k, 2-8sn) primary; 2captcha en geniş kapsama + Turnstile %97 insan yedeği ($2.99/1k) fallback; LMM novel puzzle; buster ücretsiz son fallback.
 
 Vault refs:
-  - vault://captcha/2captcha/apiKey  (from C:/Users/ahmet/Downloads/DIGER/sunucular/*2captcha*.txt)
-  - vault://llm/openai/apiKey        (from openai_platform.txt)
-  - vault://llm/gemini/apiKey        (from GOOGLE_API_KEY)
-  - vault://proxy/residential/uri    (for DataDome/Turnstile)
+  - vault://captcha/capsolver/apiKey   (from C:/Users/ahmet/Downloads/DIGER/sunucular/*capsolver*.txt, env CAPSOLVER_API_KEY)
+  - vault://captcha/2captcha/apiKey    (from C:/Users/ahmet/Downloads/DIGER/sunucular/*2captcha*.txt)
+  - vault://llm/openai/apiKey          (from openai_platform.txt)
+  - vault://llm/gemini/apiKey          (from GOOGLE_API_KEY)
+  - vault://proxy/residential/uri      (for DataDome/Turnstile)
 
 Original repos:
+  - CapSolver REST API (createTask/getTaskResult, https://api.capsolver.com)
   - 2captcha/2captcha-python (Twocaptcha/AsyncTwoCaptcha)
   - aydinnyunus/ai-captcha-bypass (ai_utils.py, puzzle_solver.py)
   - teal33t/captcha_bypass (buster)
@@ -38,7 +40,9 @@ for _p in [Path(__file__).resolve().parents[2] / "services" / "captcha-ensemble"
     if _p.exists() and str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-SolverType = Literal["2captcha", "ai_lmm", "buster"]
+SolverType = Literal["capsolver", "2captcha", "ai_lmm", "buster"]
+
+CAPSOLVER_API_BASE = "https://api.capsolver.com"
 
 
 @dataclass
@@ -70,6 +74,7 @@ def _get_vault_secret(ref: str) -> Optional[str]:
         return ref
     # Prototype: env var mapping for C:/Users/ahmet/Downloads/DIGER/sunucular files
     mapping = {
+        "vault://captcha/capsolver/apiKey": os.getenv("CAPSOLVER_API_KEY") or os.getenv("CAPTCHA_CAPSOLVER_KEY"),
         "vault://captcha/2captcha/apiKey": os.getenv("CAPTCHA_2CAPTCHA_KEY") or os.getenv("TWOCAPTCHA_API_KEY"),
         "vault://llm/openai/apiKey": os.getenv("OPENAI_API_KEY"),
         "vault://llm/gemini/apiKey": os.getenv("GOOGLE_API_KEY"),
@@ -107,6 +112,119 @@ async def _solve_with_2captcha(task: CaptchaTask, api_key: str) -> CaptchaResult
         return CaptchaResult(solver="2captcha", success=False, error="unsupported type for 2captcha")
     except Exception as e:
         return CaptchaResult(solver="2captcha", success=False, error=str(e))
+
+
+def _capsolver_task_payload(task: CaptchaTask, proxy_uri: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Map CaptchaTask to a CapSolver createTask `task` object. None = unsupported -> fall through."""
+    url = task.url or ""
+    key = task.sitekey or ""
+    if task.type in ("recaptcha_v2", "recaptcha"):
+        if not key or not url:
+            return None
+        if proxy_uri:
+            return {"type": "ReCaptchaV2Task", "websiteURL": url, "websiteKey": key, "proxy": proxy_uri}
+        return {"type": "ReCaptchaV2TaskProxyless", "websiteURL": url, "websiteKey": key}
+    if task.type == "recaptcha_v3":
+        if not key or not url:
+            return None
+        payload: Dict[str, Any] = {"websiteURL": url, "websiteKey": key, "pageAction": "verify"}
+        if proxy_uri:
+            return {"type": "ReCaptchaV3Task", "proxy": proxy_uri, **payload}
+        return {"type": "ReCaptchaV3TaskProxyless", **payload}
+    if task.type == "turnstile":
+        if not key or not url:
+            return None
+        if proxy_uri:
+            return {"type": "AntiTurnstileTask", "websiteURL": url, "websiteKey": key, "proxy": proxy_uri}
+        return {"type": "AntiTurnstileTaskProxyLess", "websiteURL": url, "websiteKey": key}
+    if task.type == "hcaptcha":
+        if not key or not url:
+            return None
+        if proxy_uri:
+            return {"type": "HCaptchaTask", "websiteURL": url, "websiteKey": key, "proxy": proxy_uri}
+        return {"type": "HCaptchaTaskProxyless", "websiteURL": url, "websiteKey": key}
+    if task.type == "geetest":
+        if not task.gt or not task.challenge or not url:
+            return None
+        payload = {"websiteURL": url, "gt": task.gt, "challenge": task.challenge}
+        if proxy_uri:
+            return {"type": "GeeTestTask", "proxy": proxy_uri, **payload}
+        return {"type": "GeeTestTaskProxyless", **payload}
+    if task.type in ("text", "image") and task.image_path:
+        try:
+            import base64
+
+            with open(task.image_path, "rb") as f:
+                body = base64.b64encode(f.read()).decode()
+        except Exception:
+            return None
+        return {"type": "ImageToTextTask", "body": body}
+    if task.type == "datadome":
+        # DatadomeSliderTask requires proxy; without proxy fall through to 2captcha.
+        if not proxy_uri or not task.captcha_url or not url:
+            return None
+        return {
+            "type": "DatadomeSliderTask",
+            "websiteURL": url,
+            "captchaUrl": task.captcha_url,
+            "proxy": proxy_uri,
+            "userAgent": task.user_agent or "Mozilla/5.0",
+        }
+    return None
+
+
+def _capsolver_solve_blocking(task_payload: Dict[str, Any], api_key: str, timeout_s: int = 120, poll_interval_s: int = 5) -> CaptchaResult:
+    """Blocking CapSolver createTask/getTaskResult loop (run inside asyncio.to_thread)."""
+    import time
+
+    import requests
+
+    try:
+        r = requests.post(f"{CAPSOLVER_API_BASE}/createTask", json={"clientKey": api_key, "task": task_payload}, timeout=30)
+        data = r.json()
+    except Exception as e:
+        return CaptchaResult(solver="capsolver", success=False, error=f"createTask failed: {e}")
+    if data.get("errorId") != 0 or not data.get("taskId"):
+        return CaptchaResult(
+            solver="capsolver", success=False,
+            error=f"createTask rejected: {data.get('errorCode')}/{data.get('errorDescription')}",
+        )
+    task_id = data["taskId"]
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        time.sleep(poll_interval_s)
+        try:
+            r = requests.post(f"{CAPSOLVER_API_BASE}/getTaskResult", json={"clientKey": api_key, "taskId": task_id}, timeout=30)
+            res = r.json()
+        except Exception as e:
+            return CaptchaResult(solver="capsolver", success=False, error=f"getTaskResult failed: {e}")
+        if res.get("errorId") != 0:
+            return CaptchaResult(
+                solver="capsolver", success=False,
+                error=f"getTaskResult error: {res.get('errorCode')}/{res.get('errorDescription')}",
+            )
+        if res.get("status") == "ready":
+            sol = res.get("solution") or {}
+            token = sol.get("gRecaptchaResponse") or sol.get("token")
+            text = sol.get("text")
+            if token or text:
+                return CaptchaResult(solver="capsolver", success=True, token=token, text=text)
+            return CaptchaResult(solver="capsolver", success=False, error="empty solution")
+    return CaptchaResult(solver="capsolver", success=False, error="timeout waiting for solution")
+
+
+async def _solve_with_capsolver(task: CaptchaTask, api_key: str, timeout_s: int = 120) -> CaptchaResult:
+    """CapSolver primary (2026: $0.80/1k recaptcha+turnstile, 2-8sn AI)."""
+    try:
+        import requests  # noqa: F401
+    except Exception as e:
+        return CaptchaResult(solver="capsolver", success=False, error=f"requests missing: {e}")
+    raw_proxy = (_get_vault_secret(task.proxy) or task.proxy) if task.proxy else None
+    proxy_uri = raw_proxy if not raw_proxy or "://" in raw_proxy else "http://" + raw_proxy
+    payload = _capsolver_task_payload(task, proxy_uri)
+    if payload is None:
+        return CaptchaResult(solver="capsolver", success=False, error=f"unsupported type for capsolver: {task.type}")
+    return await asyncio.to_thread(_capsolver_solve_blocking, payload, api_key, timeout_s)
 
 
 async def _solve_with_lmm(task: CaptchaTask) -> CaptchaResult:
@@ -156,16 +274,19 @@ async def _solve_with_buster(task: CaptchaTask) -> CaptchaResult:
 async def solve_captcha(task: CaptchaTask, order: list[SolverType] | None = None, authorization: Optional[Any] = None) -> CaptchaResult:
     """
     Agentic ensemble — per-action risk Very High/Critical değilse (Low/Moderate/High) her zaman dene, site riskli olsa bile.
-    Order: 2captcha (vault://captcha/2captcha/apiKey) → ai_lmm (vault://llm/openai/apiKey + Gemini) → buster (Firefox + B-spline) → quarantine.
+    Order: capsolver (vault://captcha/capsolver/apiKey, $0.80/1k) → 2captcha (vault://captcha/2captcha/apiKey, coverage) → ai_lmm (vault://llm/openai/apiKey + Gemini) → buster (Firefox + B-spline) → quarantine.
     Biometric mouse her browser adımda zaten aktif. Very High/Critical eylemlerde çağrılmamalı — caller auto_quarantine etmeli.
     If authorization is provided, it must permit auto_ensemble for Low/Moderate/High per-action (site geneli High olsa bile per-action High → izin).
     """
-    # Per-action check if authorization is provided
+    # Per-action check if authorization is provided (fail-closed)
     if authorization is not None:
         try:
+            # This chain is ONLY authorized by challenge_mode=auto_ensemble.
+            if getattr(authorization, "challenge_mode", "none") != "auto_ensemble":
+                return CaptchaResult(solver="quarantine", success=False, error="challenge mode does not permit ensemble")
             # New policy: auto_ensemble for Low/Moderate/High, Very High/Critical → quarantine
             if hasattr(authorization, "permits_platform_challenge"):
-                if not authorization.permits_platform_challenge and authorization.challenge_mode == "auto_ensemble":
+                if not authorization.permits_platform_challenge:
                     # For auto_ensemble, check main_risk directly if permits fails due to old policy
                     from .risk_router import RISK_ORDER
                     if authorization.main_risk in RISK_ORDER and RISK_ORDER[authorization.main_risk] <= RISK_ORDER["High"]:
@@ -173,13 +294,22 @@ async def solve_captcha(task: CaptchaTask, order: list[SolverType] | None = None
                     else:
                         return CaptchaResult(solver="quarantine", success=False, error="Very High/Critical action cannot use auto_ensemble")
             # Also handle legacy first_party case
-        except Exception:
-            pass
-    order = order or ["2captcha", "ai_lmm", "buster"]
+        except Exception as e:
+            return CaptchaResult(solver="quarantine", success=False, error=f"authorization check failed: {e}")
+    order = order or ["capsolver", "2captcha", "ai_lmm", "buster"]
     last_error: Optional[str] = None
 
     for solver in order:
-        if solver == "2captcha":
+        if solver == "capsolver":
+            api_key = _get_vault_secret("vault://captcha/capsolver/apiKey")
+            if not api_key:
+                last_error = "missing vault://captcha/capsolver/apiKey"
+                continue
+            r = await _solve_with_capsolver(task, api_key)
+            if r.success:
+                return r
+            last_error = r.error
+        elif solver == "2captcha":
             api_key = _get_vault_secret("vault://captcha/2captcha/apiKey")
             if not api_key:
                 last_error = "missing vault://captcha/2captcha/apiKey"

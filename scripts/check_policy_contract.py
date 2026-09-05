@@ -69,6 +69,34 @@ if "auto_ensemble" not in cap["policy"].get("enum", []):
     fail("schema captcha.policy enum must include auto_ensemble")
 else:
     ok("schema captcha.policy enum includes auto_ensemble")
+if CONTRACT["captcha"]["solvers"][0] != "capsolver":
+    fail(f"contract solvers must start with capsolver, got {CONTRACT['captcha']['solvers']!r}")
+else:
+    ok("contract solvers start with capsolver")
+if "capsolver" not in cap.get("solvers", {}).get("items", {}).get("enum", []):
+    fail("schema captcha.solvers enum must include capsolver")
+else:
+    ok("schema captcha.solvers enum includes capsolver")
+if cap.get("solvers", {}).get("default", [None])[0] != "capsolver":
+    fail(f"schema captcha.solvers default must start with capsolver, got {cap.get('solvers', {}).get('default')!r}")
+else:
+    ok("schema captcha.solvers default starts with capsolver")
+if "capSolver" not in cap or cap["capSolver"].get("properties", {}).get("apiKeyRef") is None:
+    fail("schema must define captcha.capSolver.apiKeyRef (vault://captcha/capsolver/apiKey)")
+else:
+    ok("schema captcha.capSolver.apiKeyRef present")
+
+# 4b. ensemble code: CapSolver client + order
+ens = (ROOT / "src" / "ai_marketing_agent" / "captcha_ensemble.py").read_text(encoding="utf-8")
+for needle, label in [
+    ("_solve_with_capsolver", "ensemble CapSolver client"),
+    ('order = order or ["capsolver", "2captcha", "ai_lmm", "buster"]', "ensemble default order capsolver-first"),
+    ("vault://captcha/capsolver/apiKey", "ensemble capsolver vault ref"),
+]:
+    if needle not in ens:
+        fail(f"captcha_ensemble.py missing: {label}")
+    else:
+        ok(f"captcha_ensemble.py: {label}")
 
 # 5. Doc drift guards
 checks = [

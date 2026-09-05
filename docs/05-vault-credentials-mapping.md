@@ -10,7 +10,8 @@ Bu dosya **ham secret içermez**. Sadece yerel dosyaların Vault referanslarına
 |---|---|---|---|
 | `openai_platform.txt` | `vault://llm/openai/apiKey` | `ai-captcha-bypass` GPT-4o (`gpt-4o`) + içerik üretimi | `OPENAI_API_KEY` env olarak da enjekte edilebilir |
 | `openai_platform.txt` (aynı dosya, Gemini anahtarı varsa) | `vault://llm/gemini/apiKey` | `ai-captcha-bypass` Gemini (`gemini-2.5-pro`) fallback | `GOOGLE_API_KEY` |
-| `2captcha` anahtarı (ayrıca `capsolver` varsa) — kullanıcı `C:\...\sunucular` içinde `2captcha*.txt` / `capsolver*.txt` yoksa 2captcha.com'dan alınır | `vault://captcha/2captcha/apiKey` | `2captcha-python` `TwoCaptcha(apiKey)` primary solver | `twocaptcha` `AsyncTwoCaptcha` için aynı |
+| `capsolver*.txt` — yoksa capsolver.com'dan alınır | `vault://captcha/capsolver/apiKey` | CapSolver `createTask` — primary solver (`CAPSOLVER_API_KEY`) | En ucuz/hızlı: $0.80/1k |
+| `2captcha*.txt` — yoksa 2captcha.com'dan alınır | `vault://captcha/2captcha/apiKey` | `2captcha-python` `TwoCaptcha(apiKey)` — coverage fallback | `twocaptcha` `AsyncTwoCaptcha` için aynı |
 | `cloudflare.txt` | `vault://captcha/cloudflare/apiKey` + `vault://proxy/cloudflare/waf` | Cloudflare Turnstile çözümünde gerekebilir | WAF bypass değil, token çözüm |
 | `hetzner.txt` / `hostinger.txt` / `hostinger2.txt` / `netcup/*` | `vault://infra/hetzner/apiKey` vb. | VPS / domain otomasyonu değil, proxy/VPS yönetimi için | Runner'ın kendi VPS'si değil, gerekirse proxy havuzu için |
 | `github_no_org_token.txt` / `netcup_git_PAT.txt` | `vault://git/github/pat` | Repo otomasyonu değil, adapter versioning için | Site adapter'ları için değil |
@@ -23,11 +24,13 @@ Bu dosya **ham secret içermez**. Sadece yerel dosyaların Vault referanslarına
 ```bash
 # 1) Vault'a aktar (1Password / HashiCorp Vault / encrypted SQLite)
 vault kv put secret/llm/openai apiKey="$(cat 'C:\Users\ahmet\Downloads\DIGER\sunucular/openai_platform.txt')"
+vault kv put secret/captcha/capsolver apiKey="$(cat 'C:\Users\ahmet\Downloads\DIGER\sunucular/capsolver.txt')"
 vault kv put secret/captcha/2captcha apiKey="$(cat 'C:\Users\ahmet\Downloads\DIGER\sunucular/2captcha.txt')"
 vault kv put secret/mouse/profile mouse_profile="$(cat profile/mouse_profile.json)"
 
 # 2) Adapter'da kullanım (düz metin yok)
 # site-adapter.json
+# "capSolver": { "apiKeyRef": "vault://captcha/capsolver/apiKey" }
 # "twoCaptcha": { "apiKeyRef": "vault://captcha/2captcha/apiKey" }
 # "aiLmm": { "apiKeyRef": "vault://llm/openai/apiKey" }
 # "biometricMouse": { "profileRef": "vault://mouse/profile/mouse_profile.json" }

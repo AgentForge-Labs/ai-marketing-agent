@@ -27,7 +27,7 @@ Risk is determined by the **requested action**, never by a coarse site-wide labe
 
 A risky site can therefore have safe/routable actions, and a generally safe site can still have a quarantined action. Sensitive browser helpers receive an action-scoped `ExecutionAuthorization`; a site-level flag can never authorize them. Browser-input shaping is used for an authorized `Low`/`Moderate`/`High` browser action as ordinary UI input behavior per canonical `schemas/policy-contract.json` (v1.0.0, `maxAutonomousRisk: High`).
 
-A CAPTCHA/security challenge on `Low`/`Moderate`/`High` per-action is solved via `auto_ensemble` (`2captcha` → `ai_lmm` → `buster`) by default; `Very High`/`Critical` move to `auto_quarantine`. This project solves CAPTCHAs as part of the automatic flow; ban/suspension circumvention via identity/IP rotation remains prohibited.
+A CAPTCHA/security challenge on `Low`/`Moderate`/`High` per-action is solved via `auto_ensemble` (`capsolver` → `2captcha` → `ai_lmm` → `buster`) by default; `Very High`/`Critical` move to `auto_quarantine`. This project solves CAPTCHAs as part of the automatic flow; ban/suspension circumvention via identity/IP rotation remains prohibited.
 
 ## 2. Risk levels
 
@@ -178,7 +178,7 @@ campaign goal
   → action_main_risk = minimum supported-medium risk
   → choose best medium at that minimum risk
       → Low: auto_full on the selected medium + biometric mouse her zaman + captcha çıkarsa auto_ensemble
-      → Moderate/High (riskli grupta olsa bile, Very High değilse): auto_with_verification on the selected medium + biometric mouse her zaman + captcha çıkarsa auto_ensemble (2captcha → ai-captcha-bypass → buster)
+      → Moderate/High (riskli grupta olsa bile, Very High değilse): auto_with_verification on the selected medium + biometric mouse her zaman + captcha çıkarsa auto_ensemble (capsolver → 2captcha → ai-captcha-bypass → buster)
       → Very High/Critical/no acceptable route: auto_quarantine (ensemble/bypass yok)
   → if a security challenge appears on Low/Moderate/High: run auto_ensemble with vault:// keys and biometric mouse; Very High/Critical ise doğrudan quarantine
   → verify (semantic delta + vision-LLM)
@@ -186,6 +186,6 @@ campaign goal
   → learn
 ```
 
-**Güncel Politika (Kullanıcı onayı):** Risk site çapında değil, **sitede yapılacak eyleme göre** belirlenir. Bir eylem `Very High`/`Critical` sınıfında değilse (`Low`/`Moderate`/`High`), CAPTCHA çıksa bile `vault://` ile `auto_ensemble` (`2captcha/2captcha-python` → `aydinnyunus/ai-captcha-bypass` → `teal33t/captcha_bypass`) kullanılabilir; `High` eylem riskli grupta olsa bile bu geçerlidir. `Biometric mouse` (`wassim-sayah/biometric-mouse`) **her zaman** kullanılır (her `browser_auto`/`auto_with_verification` eylemde). Elastic doküman `channel_action_risk` per-action mapping ile aynı kuralı saklar; `site_registry` + `risk_decision` audit her eylem için izlenir.
+**Güncel Politika (Kullanıcı onayı):** Risk site çapında değil, **sitede yapılacak eyleme göre** belirlenir. Bir eylem `Very High`/`Critical` sınıfında değilse (`Low`/`Moderate`/`High`), CAPTCHA çıksa bile `vault://` ile `auto_ensemble` (CapSolver → `2captcha/2captcha-python` → `aydinnyunus/ai-captcha-bypass` → `teal33t/captcha_bypass`) kullanılabilir; `High` eylem riskli grupta olsa bile bu geçerlidir. `Biometric mouse` (`wassim-sayah/biometric-mouse`) **her zaman** kullanılır (her `browser_auto`/`auto_with_verification` eylemde). Elastic doküman `channel_action_risk` per-action mapping ile aynı kuralı saklar; `site_registry` + `risk_decision` audit her eylem için izlenir.
 
 For LinkedIn, the post action is `Low` because the official Posts API is a low-risk supported medium even though the same action records a higher browser-agent risk; cold browser DM/outreach has no lower-risk assumed medium and remains `Critical`. For Product Hunt, browsing and data collection remain `Low`, an owned product submission is `Moderate`, and vote automation remains `Critical`. For Reddit, API/Devvit keeps monitoring/post/comment actions low-risk while voting remains a separately high-risk action.

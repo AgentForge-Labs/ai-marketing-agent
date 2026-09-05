@@ -18,6 +18,8 @@ class PolicyContractTests(unittest.TestCase):
         self.assertEqual(contract["executableRisks"], ["Low", "Moderate", "High"])
         self.assertEqual(contract["captcha"]["defaultPolicy"], "auto_ensemble")
         self.assertTrue(contract["captcha"]["thirdPartySolversAllowed"])
+        self.assertEqual(contract["captcha"]["solvers"], ["capsolver", "2captcha", "ai_lmm", "buster"])
+        self.assertTrue(contract["captcha"]["solverOrder"].startswith("capsolver -> 2captcha"))
 
     def test_check_script_passes(self):
         result = subprocess.run(

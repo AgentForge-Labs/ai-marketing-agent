@@ -731,22 +731,32 @@
     },
     "captcha": {
       "type": "object",
-      "description": "CAPTCHA/security-challenge politika alanı — per-action. Eylem Very High/Critical değilse (Low/Moderate/High), site riskli grupta olsa bile vault:// ile auto_ensemble (2captcha → ai_lmm → buster) kullanılabilir. Very High/Critical → auto_quarantine, ensemble yok. Her deneme audit_log.detail_json.captcha maskeli.",
+      "description": "CAPTCHA/security-challenge politika alanı — per-action. Eylem Very High/Critical değilse (Low/Moderate/High), site riskli grupta olsa bile vault:// ile auto_ensemble (capsolver → 2captcha → ai_lmm → buster) kullanılabilir. Very High/Critical → auto_quarantine, ensemble yok. Her deneme audit_log.detail_json.captcha maskeli.",
       "properties": {
         "policy": {
           "enum": ["abort_and_notify", "auto_ensemble"],
           "default": "auto_ensemble",
-          "description": "auto_ensemble: Low/Moderate/High per-action (High riskli grupta olsa bile, Very High değilse) challenge durumunda agentic ensemble (2captcha→ai_lmm→buster) vault:// ile denenir. abort_and_notify: challenge durumunda doğrudan auto_quarantine (Very High/Critical için zorunlu)."
+          "description": "auto_ensemble: Low/Moderate/High per-action (High riskli grupta olsa bile, Very High değilse) challenge durumunda agentic ensemble (capsolver→2captcha→ai_lmm→buster) vault:// ile denenir. abort_and_notify: challenge durumunda doğrudan auto_quarantine (Very High/Critical için zorunlu)."
         },
         "strategy": {
-          "enum": ["2captcha", "ai_lmm", "buster", "auto_ensemble"],
+          "enum": ["capsolver", "2captcha", "ai_lmm", "buster", "auto_ensemble"],
           "default": "auto_ensemble",
-          "description": "auto_ensemble içinde sıra: 2captcha → ai_lmm → buster → human Telegram (son çare)."
+          "description": "auto_ensemble içinde sıra: capsolver → 2captcha → ai_lmm → buster → human Telegram (son çare)."
         },
         "solvers": {
           "type": "array",
-          "items": { "enum": ["2captcha", "ai_lmm", "buster", "human_telegram"] },
-          "default": ["2captcha", "ai_lmm", "buster"]
+          "items": { "enum": ["capsolver", "2captcha", "ai_lmm", "buster", "human_telegram"] },
+          "default": ["capsolver", "2captcha", "ai_lmm", "buster"]
+        },
+        "capSolver": {
+          "type": "object",
+          "description": "CapSolver primary (2026: $0.80/1k recaptcha+turnstile, AI 2-8sn).",
+          "properties": {
+            "apiKeyRef": { "type": "string", "description": "vault://captcha/capsolver/apiKey" },
+            "server": { "type": "string", "default": "https://api.capsolver.com" },
+            "defaultTimeout": { "type": "integer", "default": 120 },
+            "pollingInterval": { "type": "integer", "default": 5 }
+          }
         },
         "twoCaptcha": {
           "type": "object",

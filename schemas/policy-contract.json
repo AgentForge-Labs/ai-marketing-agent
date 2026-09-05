@@ -16,11 +16,16 @@
     "defaultPolicy": "auto_ensemble",
     "strategy": "auto_ensemble",
     "thirdPartySolversAllowed": true,
-    "solvers": ["2captcha", "ai_lmm", "buster"],
-    "solverOrder": "2captcha -> ai_lmm -> buster -> auto_quarantine",
+    "solvers": ["capsolver", "2captcha", "ai_lmm", "buster"],
+    "solverOrder": "capsolver -> 2captcha -> ai_lmm -> buster -> auto_quarantine",
     "forRisks": ["Low", "Moderate", "High"],
     "quarantineRisks": ["Very High", "Critical"],
-    "notes": "Bu proje CAPTCHA çözer. Low/Moderate/High per-action için third-party ensemble otomatik akışın parçasıdır. Very High/Critical doğrudan auto_quarantine."
+    "pricing2026": {
+      "recaptcha_v2_per_1k": {"capsolver": 0.8, "2captcha": 2.99},
+      "turnstile_per_1k": {"capsolver": 0.8, "2captcha": 1.45},
+      "note": "2026 karşılaştırmaları: CapSolver en iyi fiyat/performans (AI, 2-8sn); 2captcha en geniş kapsama + Turnstile %97 insan yedeği. Kaynak: docs/03."
+    },
+    "notes": "Bu proje CAPTCHA çözer. Low/Moderate/High per-action için third-party ensemble otomatik akışın parçasıdır (önce en ucuz/hızlı, sonra kapsama yedeği). Very High/Critical doğrudan auto_quarantine."
   },
   "biometricMouse": {
     "enabled": true,

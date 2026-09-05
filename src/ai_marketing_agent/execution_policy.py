@@ -3,7 +3,7 @@
 Risk site çapında değil, sitede yapılacak eyleme göre belirlenir (Siteler ve riskler dokümanı).
 Coarse site/category risk is informational and cannot grant execution.
 - Biometric mouse (wassim-sayah/biometric-mouse) HER ZAMAN kullanılır for Low/Moderate/High browser actions (even if site is risky, per-action Very High/Critical değilse).
-- CAPTCHA/security challenge for Low/Moderate/High may use auto_ensemble (2captcha/2captcha-python → aydinnyunus/ai-captcha-bypass → teal33t/captcha_bypass) with vault:// keys and biometric mouse; Very High/Critical always quarantine.
+- CAPTCHA/security challenge for Low/Moderate/High may use auto_ensemble (capsolver → 2captcha/2captcha-python → aydinnyunus/ai-captcha-bypass → teal33t/captcha_bypass) with vault:// keys and biometric mouse; Very High/Critical always quarantine.
 """
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ class ExecutionAuthorization:
 
     @property
     def permits_platform_challenge(self) -> bool:
-        # auto_ensemble: 2captcha → ai-captcha-bypass → buster for Low/Moderate/High per-action (High riskli grupta olsa bile, Very High değilse)
+        # auto_ensemble: capsolver → 2captcha → ai-captcha-bypass → buster for Low/Moderate/High per-action (High riskli grupta olsa bile, Very High değilse)
         if self.challenge_mode == "auto_ensemble":
             return (
                 self.main_risk in RISK_ORDER
@@ -87,7 +87,7 @@ def authorize_execution(
 ) -> ExecutionAuthorization:
     """Mint an authorization from a canonical action decision plus Policy Registry capabilities.
 
-    - `challenge_mode=auto_ensemble` uses vault-backed libraries 2captcha/2captcha-python (primary),
+    - `challenge_mode=auto_ensemble` uses vault-backed CapSolver REST (primary, $0.80/1k) + 2captcha/2captcha-python (coverage),
       aydinnyunus/ai-captcha-bypass (LMM fallback, GPT-4o/Gemini), teal33t/captcha_bypass (buster + B-spline)
       for Low/Moderate/High per-action (High riskli grupta olsa bile, Very High/Critical değilse). Site geneli risk değil, eylem riski belirler.
     - `biometric` (wassim-sayah/biometric-mouse) her zaman Low/Moderate/High için kullanılır, Very High/Critical hariç.

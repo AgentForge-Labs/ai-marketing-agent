@@ -55,7 +55,13 @@
   "captcha": {
     "policy": "auto_ensemble",
     "strategy": "auto_ensemble",
-    "solvers": ["2captcha", "ai_lmm", "buster"],
+    "solvers": ["capsolver", "2captcha", "ai_lmm", "buster"],
+    "capSolver": {
+      "apiKeyRef": "vault://captcha/capsolver/apiKey",
+      "server": "https://api.capsolver.com",
+      "defaultTimeout": 120,
+      "pollingInterval": 5
+    },
     "twoCaptcha": {
       "apiKeyRef": "vault://captcha/2captcha/apiKey",
       "server": "2captcha.com",

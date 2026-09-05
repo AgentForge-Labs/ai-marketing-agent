@@ -39,7 +39,7 @@ Risk is determined by the **requested action**, never by a coarse site-wide labe
 - `Moderate` or `High` (**riskli grupta olsa bile**) → `auto_with_verification` with stronger assertions, audit and retry constraints, biometric mouse always and `auto_ensemble` CAPTCHA solving if not `Very High`/`Critical`;
 - `Very High`, `Critical`, `N/A`, unknown or stale-policy action → `auto_quarantine` (no biometric/captcha bypass for enforcement).
 
-A risky site can therefore have safe/routable actions, and a generally safe site can still have a quarantined action. `High` is **not** `Very High`: a `High` action on a high-risk site is still routable with verification, biometric shaping and the documented CAPTCHA ensemble. Sensitive browser helpers receive an action-scoped `ExecutionAuthorization`; a site-level flag can never authorize them. Browser-input shaping (biometric mouse) is used for every authorized `Low`/`Moderate`/`High` browser action as ordinary human-like UI input, and `auto_ensemble` (`2captcha` → `ai-captcha-bypass` → `buster`) is used for CAPTCHA/security challenges that appear on those actions, using the vault-backed libraries documented below. Very High/Critical actions remain quarantined even with those helpers.
+A risky site can therefore have safe/routable actions, and a generally safe site can still have a quarantined action. `High` is **not** `Very High`: a `High` action on a high-risk site is still routable with verification, biometric shaping and the documented CAPTCHA ensemble. Sensitive browser helpers receive an action-scoped `ExecutionAuthorization`; a site-level flag can never authorize them. Browser-input shaping (biometric mouse) is used for every authorized `Low`/`Moderate`/`High` browser action as ordinary human-like UI input, and `auto_ensemble` (`capsolver` → `2captcha` → `ai-captcha-bypass` → `buster`) is used for CAPTCHA/security challenges that appear on those actions, using the vault-backed libraries documented below. Very High/Critical actions remain quarantined even with those helpers.
 
 ## 3. Runtime services
 
@@ -64,7 +64,7 @@ The current dataset contains many homepage-fallback URLs, so preflight is mandat
 **5 kütüphane entegrasyonu (her adımda):**
 - `wassim-sayah/biometric-mouse` → `HumanMouse` her `goto`/`click`/`fill`’de her zaman (preflight gezinme dahil, `vault://mouse/profile/mouse_profile.json`, 30dk %8 varyans)
 - `visser23/semantic-browser` → `ManagedSession.observe(mode=summary)` ~540 token oda metni → `act()` ile register formu kaç alan, post/share butonu nerede, API var mı tespiti (drift repair Vision-LLM)
-- `2captcha/2captcha-python` + `aydinnyunus/ai-captcha-bypass` + `teal33t/captcha_bypass` → `auto_ensemble` (`2captcha` → `ai_lmm` → `buster`) preflight’ta bile CAPTCHA çıkarsa `Low`/`Moderate`/`High` per-action için (Very High/Critical hariç) her zaman denenir (`vault://captcha/2captcha/apiKey`, `vault://llm/openai/apiKey`, residential proxy)
+- `2captcha/2captcha-python` + `aydinnyunus/ai-captcha-bypass` + `teal33t/captcha_bypass` → `auto_ensemble` (`capsolver` → `2captcha` → `ai_lmm` → `buster`) preflight’ta bile CAPTCHA çıkarsa `Low`/`Moderate`/`High` per-action için (Very High/Critical hariç) her zaman denenir (`vault://captcha/2captcha/apiKey`, `vault://llm/openai/apiKey`, residential proxy)
 
 Preflight records (semantic-browser observe + biometric gezinme + ensemble ile elde edilir):
 
@@ -190,7 +190,7 @@ form drift detected
   → semantic-browser observe(mode=summary) → capture sanitized DOM/form model (~540 token)
   → semantic remap (visser23)
   → schema validation
-  → dry-run (doldur ama submit etme) — biometric ile fill/click, captcha çıkarsa auto_ensemble (2captcha→ai_lmm→buster)
+  → dry-run (doldur ama submit etme) — biometric ile fill/click, captcha çıkarsa auto_ensemble (capsolver→2captcha→ai_lmm→buster)
   → screenshot/redacted form + audit
   → assertion check (semantic delta + Vision-LLM)
   → confidence threshold
@@ -311,7 +311,7 @@ submit
 
 TOTP may be generated from an authorized vault secret.
 
-**CAPTCHA / security challenge — per-action, ensemble-gated (Güncel Politika):** Bir eylem `Low`/`Moderate`/`High` ise (`Very High`/`Critical` değilse) ve sayfada CAPTCHA çıkarsa, `vault://` anahtarlarıyla `auto_ensemble` sırasıyla denenir: `2captcha/2captcha-python` (primary, `AsyncTwoCaptcha`) → `aydinnyunus/ai-captcha-bypass` (GPT-4o/Gemini LMM fallback) → `teal33t/captcha_bypass` (buster + B-spline mouse) → başarısızsa `auto_quarantine`. Bu, site geneli riskli olsa bile geçerlidir; çünkü risk eylem bazlıdır. `Very High`/`Critical` eylemlerde CAPTCHA/ban atlatma denenmez, doğrudan `auto_quarantine`. Her deneme `audit_log.detail_json.captcha` içinde maskeli (tip/süre/sonuç, token yok) ve `risk_decision` ile izlenir. Kütüphaneler: `2captcha/2captcha-python`, `aydinnyunus/ai-captcha-bypass`, `teal33t/captcha_bypass` (ayrıca `wassim-sayah/biometric-mouse` her zaman).
+**CAPTCHA / security challenge — per-action, ensemble-gated (Güncel Politika):** Bir eylem `Low`/`Moderate`/`High` ise (`Very High`/`Critical` değilse) ve sayfada CAPTCHA çıkarsa, `vault://` anahtarlarıyla `auto_ensemble` sırasıyla denenir: CapSolver REST API (primary, `createTask`/`getTaskResult`) → `2captcha/2captcha-python` (`AsyncTwoCaptcha`, coverage) → `aydinnyunus/ai-captcha-bypass` (GPT-4o/Gemini LMM fallback) → `teal33t/captcha_bypass` (buster + B-spline mouse) → başarısızsa `auto_quarantine`. Bu, site geneli riskli olsa bile geçerlidir; çünkü risk eylem bazlıdır. `Very High`/`Critical` eylemlerde CAPTCHA/ban atlatma denenmez, doğrudan `auto_quarantine`. Her deneme `audit_log.detail_json.captcha` içinde maskeli (tip/süre/sonuç, token yok) ve `risk_decision` ile izlenir. Kütüphaneler: CapSolver REST API, `2captcha/2captcha-python`, `aydinnyunus/ai-captcha-bypass`, `teal33t/captcha_bypass` (ayrıca `wassim-sayah/biometric-mouse` her zaman).
 
 ## 8. Evasion Layer / anomaly controller
 
@@ -352,7 +352,7 @@ The browser stack is gated by `ExecutionAuthorization` minted from the **request
 - **`AI LMM fallback` (`aydinnyunus/ai-captcha-bypass` 1.2k★):** `ai_utils.py` GPT-4o `gpt-4o` / Gemini `gemini-2.5-pro` screenshot → prompt → Selenium action (`text`/`complicated_text`/`recaptcha_v2`/`puzzle`/`audio`), `puzzle_solver.py` slider, `successful_solves/*.gif` kanıt. Vault: `vault://llm/openai/apiKey`.
 - **`Buster fallback` (`teal33t/captcha_bypass` 330★):** Firefox + `buster_captcha_solver_for_humans-0.7.2-an+fx.xpi` + GeckoDriver + B-spline human mouse, `recaptcha_buster_bypass.py`.
 
-**Ensemble `auto_ensemble` — her zaman `High` dahil, `Very High`/`Critical` hariç:** `2captcha` → fail → `ai_lmm` → fail → `buster` → fail → `auto_quarantine`. Eylem `Low`/`Moderate`/`High` ve site eylem hücresi `High` olsa bile, CAPTCHA çıkarsa ensemble denenir; çünkü risk eylem bazlıdır. `Very High`/`Critical` eylemlerde ensemble denenmez, doğrudan `auto_quarantine` (ban atlatma değil). Her deneme `audit_log.detail_json.captcha` içinde maskeli (tip/süre/sonuç, token yok) + `risk_decision` + `self_healing_events`. Tüm anahtarlar `C:\...\sunucular` → `vault://` (bkz. `05-vault-credentials-mapping.md` ve elastic doküman `channel_action_risk` mapping). **Kütüphaneler her zaman kullanılabilir:** `wassim-sayah/biometric-mouse`, `2captcha/2captcha-python`, `aydinnyunus/ai-captcha-bypass`, `teal33t/captcha_bypass`.
+**Ensemble `auto_ensemble` — her zaman `High` dahil, `Very High`/`Critical` hariç:** `capsolver` → fail → `2captcha` → fail → `ai_lmm` → fail → `buster` → fail → `auto_quarantine`. Eylem `Low`/`Moderate`/`High` ve site eylem hücresi `High` olsa bile, CAPTCHA çıkarsa ensemble denenir; çünkü risk eylem bazlıdır. `Very High`/`Critical` eylemlerde ensemble denenmez, doğrudan `auto_quarantine` (ban atlatma değil). Her deneme `audit_log.detail_json.captcha` içinde maskeli (tip/süre/sonuç, token yok) + `risk_decision` + `self_healing_events`. Tüm anahtarlar `C:\...\sunucular` → `vault://` (bkz. `05-vault-credentials-mapping.md` ve elastic doküman `channel_action_risk` mapping). **Kütüphaneler her zaman kullanılabilir:** `wassim-sayah/biometric-mouse`, CapSolver REST API, `2captcha/2captcha-python`, `aydinnyunus/ai-captcha-bypass`, `teal33t/captcha_bypass`.
 
 This keeps the core action-risk rule intact: a high-risk site does not block a lower-risk action (`High` eylem `auto_with_verification` + biometric + ensemble), while a `Very High`/`Critical` action is quarantined even with those helpers. Elastic doküman `channel_action_risk` per-action mapping ile aynı kuralı saklar.
 

@@ -78,7 +78,7 @@ Prohibited examples:
 
 - Email verification may be automated when it is a normal verification step for an authorized account.
 - TOTP may be generated automatically from an authorized secret stored in the vault.
-- CAPTCHA/security challenges on `Low`/`Moderate`/`High` per-action are solved via `auto_ensemble` (`2captcha` → `ai_lmm` → `buster`) per `schemas/policy-contract.json`. `Very High`/`Critical` move to `auto_quarantine`; after ensemble exhaustion the job also moves to `auto_quarantine` with masked audit.
+- CAPTCHA/security challenges on `Low`/`Moderate`/`High` per-action are solved via `auto_ensemble` (`capsolver` → `2captcha` → `ai_lmm` → `buster`) per `schemas/policy-contract.json`. `Very High`/`Critical` move to `auto_quarantine`; after ensemble exhaustion the job also moves to `auto_quarantine` with masked audit.
 - Third-party solvers are part of the automatic flow by default (`captcha.defaultPolicy: auto_ensemble`); no per-channel opt-in is required beyond the action being executable (`Low`/`Moderate`/`High`).
 
 ### Agentic Human-like Stack (agentic, vault-backed — 5 repos)
