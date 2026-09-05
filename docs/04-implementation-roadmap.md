@@ -91,6 +91,8 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 **Exit criteria:** `turnstile` + `recaptcha_v2` + `datadome` 3 tipte agentic çözüm kanıt üretir ve `dead-pool` tetiklenmeden 10 ardışık submit başarılıdır; `management` review'de `audit_log.detail_json.captcha` maskeli ve `vault://` referanslı.
 
+**Durum:** otomatikleştirilebilir kısım implemented — `scripts/check_live_proofs.py` (mouse profili şema + secret taraması, kanıt maskeleme denetimi, vault ref çözümleme; canlı çağrı yok, exit 0 checklist) + `tests/test_live_proofs.py`. Canlı koşum (kayıt/eğitim, Vault import, 3 tip kanıt, 10 submit) manuel checklist olarak kalır; kurallar FINAL regression issue'sunda.
+
 ## Phase 6 — Automatic submit and verification
 
 - Enable automatic submit for policy-valid pilot adapters.
