@@ -108,22 +108,18 @@ This roadmap implements the architecture in `03-automation-architecture.md`. Eve
 
 ## Phase 7 — Evasion Layer / anomaly controller
 
-Implement the production-safe Evasion Layer:
+Implement the production-safe Evasion Layer. **Implemented (`evasion.py:evaluate` + `DeadPool`, `tests/test_evasion.py`):**
 
-- rate-limit/throttling detection;
-- failure burst detection;
-- duplicate-content detection;
-- form drift detection;
-- session expiry/auth-loop detection;
-- CAPTCHA/security challenge detection;
-- policy drift detection;
-- automatic concurrency reduction;
-- account/channel cooldown;
-- adapter-family pause;
-- policy/preflight refresh;
-- autonomous quarantine.
+- rate-limit/throttling detection → throttle; **done**
+- failure burst detection → cooldown; **done**
+- duplicate-content detection → quarantine; **done**
+- form drift detection → policy refresh/remap; **done**
+- session expiry/auth-loop detection → refresh; **done**
+- CAPTCHA/security challenge detection → quarantine (solving lives in ensemble); **done**
+- policy drift detection → refresh; **done**
+- automatic concurrency reduction; account/channel cooldown; adapter-family pause; policy/preflight refresh; autonomous quarantine. **Done via decision actions.**
 
-Implement CAPTCHA solving (`auto_ensemble`) and biometric-human input shaping per `schemas/policy-contract.json` for `Low`/`Moderate`/`High` per-action. Explicitly do **not** implement ban/suspension evasion via identity/IP rotation or submit through explicitly blocked endpoints after a platform block.
+Implement CAPTCHA solving (`auto_ensemble`) and biometric-human input shaping per `schemas/policy-contract.json` for `Low`/`Moderate`/`High` per-action. Explicitly do **not** implement ban/suspension evasion via identity/IP rotation or submit through explicitly blocked endpoints after a platform block. **Ban → `dead_pool` (hash-only, never reused). Enforced: no evasion code exists in `evasion.py` by design (only throttle/cooldown/pause/refresh/quarantine/dead_pool actions).**
 
 **Exit criteria:** anomalies reduce or stop execution automatically before they become repeated failures or policy violations.
 

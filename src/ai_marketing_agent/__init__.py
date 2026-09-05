@@ -27,6 +27,7 @@ from .adapter_compiler import (
     gate_promotion,
 )
 from .content_core import ContentArtifact, ContentRequest, fingerprint, generate_content, jaccard_similarity, verify_claims
+from .evasion import AnomalySignals, DeadPool, EvasionDecision, check_dead_pool, evaluate as evaluate_anomalies
 from .persona import Persona, PersonaRegistry, refresh_oauth_token, totp_now
 from .policy_crawler import CrawlSignals, crawl_policy
 from .submit import (
@@ -89,6 +90,11 @@ __all__ = [
     "detect_drift",
     "fingerprint_form",
     "gate_promotion",
+    "AnomalySignals",
+    "DeadPool",
+    "EvasionDecision",
+    "check_dead_pool",
+    "evaluate_anomalies",
     "ContentArtifact",
     "ContentRequest",
     "fingerprint",
