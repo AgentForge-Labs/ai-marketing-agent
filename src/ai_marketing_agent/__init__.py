@@ -29,6 +29,15 @@ from .adapter_compiler import (
 from .content_core import ContentArtifact, ContentRequest, fingerprint, generate_content, jaccard_similarity, verify_claims
 from .persona import Persona, PersonaRegistry, refresh_oauth_token, totp_now
 from .policy_crawler import CrawlSignals, crawl_policy
+from .submit import (
+    AmbiguousOutcome,
+    SubmitPlan,
+    ensure_submit_tables,
+    pilot_checklist,
+    pre_submit_check,
+    record_submission,
+    resolve_ambiguous,
+)
 from .policy_registry import PolicyRecord, PolicyRegistry, evaluate_policy_gate
 from .queue import complete_job, enqueue, fail_job, idempotency_key, lease_next_job, quarantine_job, recover_stalled
 from .vault import EnvVault, resolve_secret
@@ -65,6 +74,13 @@ __all__ = [
     "account_reuse_audit_record",
     "CrawlSignals",
     "crawl_policy",
+    "AmbiguousOutcome",
+    "SubmitPlan",
+    "ensure_submit_tables",
+    "pilot_checklist",
+    "pre_submit_check",
+    "record_submission",
+    "resolve_ambiguous",
     "BROWSER_OPS",
     "CompileError",
     "PromotionGates",
