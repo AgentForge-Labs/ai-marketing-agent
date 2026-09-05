@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from .metrics import get_metrics
+
 
 def _utc_now() -> float:
     return datetime.now(timezone.utc).timestamp()
@@ -74,6 +76,43 @@ class OrchestratorState:
     max_per_account: int = 1
 
 
+@dataclass
+class PacingRule:
+    """Per-account throttle: min seconds between actions + max actions per UTC day."""
+    min_interval_s: float = 300.0
+    max_per_day: int = 50
+
+
+class AccountPacer:
+    """Fail-closed throttle: unknown account starts allowed, then rate-limited."""
+
+    def __init__(self, default: Optional[PacingRule] = None) -> None:
+        self.default = default or PacingRule()
+        self.rules: Dict[str, PacingRule] = {}
+        self._last_at: Dict[str, float] = {}
+        self._day_counts: Dict[str, tuple] = {}
+
+    def set_rule(self, account_id: str, rule: PacingRule) -> None:
+        self.rules[account_id] = rule
+
+    def allow(self, account_id: str, ts: float) -> bool:
+        rule = self.rules.get(account_id, self.default)
+        last = self._last_at.get(account_id)
+        if last is not None and ts - last < rule.min_interval_s:
+            return False
+        day = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        day_key, count = self._day_counts.get(account_id, ("", 0))
+        if day_key == day and count >= rule.max_per_day:
+            return False
+        return True
+
+    def record(self, account_id: str, ts: float) -> None:
+        day = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        day_key, count = self._day_counts.get(account_id, ("", 0))
+        self._day_counts[account_id] = (day, count + 1 if day_key == day else 1)
+        self._last_at[account_id] = ts
+
+
 def next_best_action(
     campaign: Campaign,
     candidates: List[ChannelCandidate],
@@ -81,17 +120,21 @@ def next_best_action(
     state: Optional[OrchestratorState] = None,
     account_id: str = "",
     now: Optional[float] = None,
+    pacer: Optional[AccountPacer] = None,
 ) -> Optional[Dict[str, Any]]:
     """Pick the highest-score eligible candidate. None means: do nothing (fail-closed).
 
     Eligibility: campaign not paused/kill-switched, budget left, session healthy,
-    quota left, cooldown passed, scheduled time reached, concurrency caps free.
+    quota left, cooldown passed, scheduled time reached, concurrency caps free,
+    per-account pacing gate (when pacer given + account_id set).
     """
     ts = now if now is not None else _utc_now()
     state = state or OrchestratorState()
     if campaign.paused:
         return None
     if campaign.budget > 0 and campaign.spent >= campaign.budget:
+        return None
+    if pacer is not None and account_id and not pacer.allow(account_id, ts):
         return None
     ranked = sorted(
         ((score_channel(c, campaign), c) for c in candidates),
@@ -111,6 +154,9 @@ def next_best_action(
         state.in_flight_per_channel[cand.channel_id] = state.in_flight_per_channel.get(cand.channel_id, 0) + 1
         if account_id:
             state.in_flight_per_account[account_id] = state.in_flight_per_account.get(account_id, 0) + 1
+            if pacer is not None:
+                pacer.record(account_id, ts)
+        get_metrics().inc("orchestrator_actions_total", channel_id=cand.channel_id)
         return {"channel_id": cand.channel_id, "score": score, "at": ts}
     return None
 
