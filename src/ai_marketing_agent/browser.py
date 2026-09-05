@@ -37,20 +37,36 @@ def _get_multilogin_api_base() -> Optional[str]:
     return os.getenv("MULTILOGIN_API_URL") or os.getenv("MULTILOGIN_LOCAL_API") or "http://127.0.0.1:35000"
 
 
-def _is_multilogin_available() -> bool:
+_PROBE_CACHE: Dict[str, Any] = {"at": 0.0, "value": False}
+PROBE_CACHE_TTL_S = 30.0
+
+
+def _is_multilogin_available(*, now: Optional[float] = None) -> bool:
+    """Cached probe: negative/positive results are reused for PROBE_CACHE_TTL_S.
+
+    Prevents up to ~4s of blocking probes on every launch when no profile_id
+    is even requested. Pass now=... in tests.
+    """
+    import time as _time
+
+    ts = now if now is not None else _time.time()
+    if ts - _PROBE_CACHE["at"] < PROBE_CACHE_TTL_S:
+        return bool(_PROBE_CACHE["value"])
     base = _get_multilogin_api_base()
-    if not base or requests is None:
-        return False
-    try:
-        # Lightweight probe — /api/v1/profile/list or /status
-        r = requests.get(f"{base.rstrip('/')}/api/v1/profile/list", timeout=2)
-        return r.status_code < 500
-    except Exception:
+    value = False
+    if base and requests is not None:
         try:
-            r = requests.get(f"{base.rstrip('/')}/status", timeout=2)
-            return r.status_code < 500
+            # Lightweight probe — /api/v1/profile/list or /status
+            r = requests.get(f"{base.rstrip('/')}/api/v1/profile/list", timeout=2)
+            value = r.status_code < 500
         except Exception:
-            return False
+            try:
+                r = requests.get(f"{base.rstrip('/')}/status", timeout=2)
+                value = r.status_code < 500
+            except Exception:
+                value = False
+    _PROBE_CACHE.update(at=ts, value=value)
+    return value
 
 
 def _resolve_proxy_for_tenant(tenant_id: Optional[str], proxy_ref: Optional[str] = None) -> Optional[str]:
