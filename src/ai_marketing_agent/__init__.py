@@ -18,6 +18,7 @@ from .email_verification import fetch_code, fetch_link, handle_verification
 from .account_reuse import BanState, PlatformPolicy, assert_reopen_allowed, audit_record as account_reuse_audit_record
 from .policy_crawler import CrawlSignals, crawl_policy
 from .policy_registry import PolicyRecord, PolicyRegistry, evaluate_policy_gate
+from .queue import complete_job, enqueue, fail_job, idempotency_key, lease_next_job, quarantine_job, recover_stalled
 from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import HumanMouse, get_human_mouse
 from .captcha_ensemble import CaptchaResult, CaptchaTask, solve_captcha
@@ -51,6 +52,13 @@ __all__ = [
     "account_reuse_audit_record",
     "CrawlSignals",
     "crawl_policy",
+    "complete_job",
+    "enqueue",
+    "fail_job",
+    "idempotency_key",
+    "lease_next_job",
+    "quarantine_job",
+    "recover_stalled",
     "PolicyRecord",
     "PolicyRegistry",
     "evaluate_policy_gate",
