@@ -135,11 +135,22 @@ for rel, pat, label in stale:
     else:
         ok(f"{rel}: stale gone ({label})")
 
-# 7. Account-reuse rule must exist in contract and be referenced by identity + architecture docs
-if CONTRACT.get("accountReuse", {}).get("rule") != "same-IP-or-same-profile-second-account-forbidden":
+# 7. Account-reuse rule must exist in contract and be referenced by identity + architecture docs.
+# Narrowed: banned/suspended -> quarantine/appeal only (fresh pair included); fresh pair only
+# when no ban AND platform explicitly permits multi-account.
+ar = CONTRACT.get("accountReuse", {})
+if ar.get("rule") != "same-IP-or-same-profile-second-account-forbidden":
     fail("contract accountReuse.rule must be same-IP-or-same-profile-second-account-forbidden")
 else:
     ok("contract accountReuse rule present")
+if "quarantine/appeal" not in ar.get("description", ""):
+    fail("contract accountReuse.description must state banned accounts go quarantine/appeal only")
+else:
+    ok("contract accountReuse ban-narrowing present")
+if "assert_reopen_allowed" not in ar.get("gate", ""):
+    fail("contract accountReuse.gate must reference assert_reopen_allowed")
+else:
+    ok("contract accountReuse gate present")
 for rel in ["docs/01-identity-strategy.md", "docs/03-automation-architecture.md"]:
     text = (ROOT / rel).read_text(encoding="utf-8")
     if "fresh profile AND a fresh IP" not in text and "fresh browser profile AND a fresh IP" not in text:

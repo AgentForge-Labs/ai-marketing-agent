@@ -38,9 +38,10 @@
   ],
   "accountReuse": {
     "rule": "same-IP-or-same-profile-second-account-forbidden",
-    "description": "Aynı platformda ikinci hesap, banlı (veya aktif) hesabın IP'sini ya da browser profilini TEK BAŞINA yeniden kullanamaz. Yeni hesap yalnızca hem profil HEM IP birlikte yenilenirse açılabilir ve yeni kimlik olarak audit kaydıyla izole edilir. Yalnızca birini yenilemek yasaktır (bağlantı kurulur → ban evasion sayılır).",
-    "forbidden": ["same IP + different profile", "same profile + different IP", "reusing banned account IP/profile"],
-    "allowed": "fresh browser profile AND fresh IP together, registered as a new audited identity"
+    "description": "Banlı/suspended hesap için fresh-pair dahil HERHANGİ bir yeniden açılış yasaktır — sadece quarantine/appeal/resolution akışı. Bansız durumda ve platform çoklu hesaba açıkça izin veriyorsa, ikinci hesap yalnızca hem profil HEM IP birlikte yenilenirse yeni denetimli kimlik olarak açılabilir. Yalnızca birini yenilemek her durumda yasaktır (bağlantı kurulur → ban evasion sayılır).",
+    "forbidden": ["same IP + different profile", "same profile + different IP", "reopening a banned/suspended account with any fresh pair (quarantine/appeal only)"],
+    "allowed": "fresh browser profile AND fresh IP together, ONLY when no ban exists AND platform explicitly permits multi-account, registered as a new audited identity",
+    "gate": "assert_reopen_allowed(platform_policy, ban_state) in src/ai_marketing_agent/account_reuse.py"
   },
   "references": {
     "runtime": [

@@ -340,7 +340,7 @@ Responses:
 - self-heal adapter;
 - quarantine.
 
-It must not use ban/suspension evasion via identity/IP rotation or submit through explicitly blocked endpoints after a platform block. Account reuse rule per `schemas/policy-contract.json:accountReuse`: same IP or same profile alone must never be reused for a second account — a new account requires BOTH a fresh profile AND a fresh IP as a new audited identity. **Biometric mouse is always used** for every authorized browser action as ordinary human-like input shaping, and **CAPTCHA ensemble is used for `Low`/`Moderate`/`High` actions when a challenge appears** (site geneli riskli olsa bile, eylem `Very High`/`Critical` değilse) per canonical `schemas/policy-contract.json`.
+It must not use ban/suspension evasion via identity/IP rotation or submit through explicitly blocked endpoints after a platform block. Account reuse rule per `schemas/policy-contract.json:accountReuse`: same IP or same profile alone must never be reused for a second account — a new account requires BOTH a fresh profile AND a fresh IP as a new audited identity, and ONLY when no ban exists AND the platform explicitly permits multi-account. A banned/suspended account is never reopened (quarantine/appeal only), even with a fresh pair. Enforced in code by `assert_reopen_allowed`. **Biometric mouse is always used** for every authorized browser action as ordinary human-like input shaping, and **CAPTCHA ensemble is used for `Low`/`Moderate`/`High` actions when a challenge appears** (site geneli riskli olsa bile, eylem `Very High`/`Critical` değilse) per canonical `schemas/policy-contract.json`.
 
 ### 8.1 Authorized browser-interaction stack — biometric always, CAPTCHA ensemble per-action
 
