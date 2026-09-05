@@ -50,8 +50,11 @@ The project uses the historical name **Evasion Layer**, but its production meani
 It must **not**:
 
 - circumvent bans, suspensions, or platform enforcement by changing identity/IP/fingerprint;
+- reopen a banned/suspended account under any fresh profile/IP pair (quarantine/appeal only), per `schemas/policy-contract.json:accountReuse`;
 - scrape or submit through prohibited endpoints after an explicit platform block;
 - use biometric-mouse to impersonate a different human (it is ordinary human-like input shaping for the authorized account, per policy-contract).
+
+A second account with a fresh profile AND fresh IP together is allowed only when no ban exists AND the platform explicitly permits multi-account (verified by `assert_reopen_allowed`).
 
 ## Engagement Bot boundaries
 

@@ -15,6 +15,7 @@ from .risk_router import (
 )
 from .browser import BrowserProvider, BrowserLaunchResult, get_browser_for_tenant, get_tenant_proxy
 from .email_verification import fetch_code, fetch_link, handle_verification
+from .account_reuse import BanState, PlatformPolicy, assert_reopen_allowed, audit_record as account_reuse_audit_record
 from .execution_policy import ExecutionAuthorization, authorize_execution
 from .human_mouse import HumanMouse, get_human_mouse
 from .captcha_ensemble import CaptchaResult, CaptchaTask, solve_captcha
@@ -42,6 +43,10 @@ __all__ = [
     "connect_sqlite",
     "normalize_http_url",
     "preflight_url",
+    "BanState",
+    "PlatformPolicy",
+    "assert_reopen_allowed",
+    "account_reuse_audit_record",
     "ExecutionAuthorization",
     "authorize_execution",
     "HumanMouse",
