@@ -149,6 +149,7 @@ class AutonomousRunner:
         flow: Dict[str, Any],
         adapter: Dict[str, Any],
         values: Optional[Dict[str, Any]] = None,
+        policy_registry: Any = None,
     ) -> RunnerResult:
         """
         Execute a single site flow (register, submitListing, etc.) with:
@@ -163,6 +164,14 @@ class AutonomousRunner:
         field without a resolvable value fails the run.
         """
         values = values if values is not None else {}
+        # 0. Policy freshness gate (optional): stale/unknown policy -> auto_quarantine.
+        if policy_registry is not None:
+            from .policy_registry import evaluate_policy_gate
+
+            gate = evaluate_policy_gate(policy_registry, list(adapter.get("domains", [])))
+            self._log("policy_gate", gate)
+            if not gate["proceed"]:
+                return RunnerResult(status="auto_quarantine", detail={"reason": gate["reason"]}, audit=self.audit)
         # 1. Authorize biometric — per-action Low/Moderate/High always
         if self.config.biometric_enabled:
             try:
@@ -366,6 +375,7 @@ class AutonomousRunner:
         profile_id: Optional[str] = None,
         is_discovery: bool = False,
         values: Optional[Dict[str, Any]] = None,
+        policy_registry: Any = None,
     ) -> RunnerResult:
         """
         Discovery ve normal mod aynı provider — MultiLogin yoksa headed, proxy per-tenant.
@@ -385,6 +395,6 @@ class AutonomousRunner:
             {"mode": launched.mode, "proxy_used": bool(launched.proxy_used), "is_discovery": is_discovery, "tenant": tenant_id},
         )
         try:
-            return await self.run_browser_flow(launched.page, flow, adapter, values=values)
+            return await self.run_browser_flow(launched.page, flow, adapter, values=values, policy_registry=policy_registry)
         finally:
             await provider.close(launched)
