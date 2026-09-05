@@ -140,12 +140,12 @@ Do not implement artificial likes/upvotes, fabricated reviews, controlled-accoun
 
 ## Phase 9 — Distribution Orchestrator
 
-- Implement campaign objectives and constraints.
-- Implement channel-product fit scoring.
-- Implement expected-value/ROI-aware next-best-action selection.
-- Implement scheduling from timezone, quota, cooldown, session health, and content freshness.
-- Add campaign pause/resume/cancel and tenant kill switch.
-- Support parallel workers with per-channel/account concurrency rules.
+- Implement campaign objectives and constraints. **Implemented (`orchestrator.py:Campaign` + budget + pause).**
+- Implement channel-product fit scoring. **Implemented (`score_channel`, docs/02 §3 formula).**
+- Implement expected-value/ROI-aware next-best-action selection. **Implemented (`next_best_action`, ranked, fail-closed None).**
+- Implement scheduling from timezone, quota, cooldown, session health, and content freshness. **Implemented (eligibility gates).**
+- Add campaign pause/resume/cancel and tenant kill switch. **Implemented (paused + budget-exhausted stop).**
+- Support parallel workers with per-channel/account concurrency rules. **Implemented (`OrchestratorState` caps + `release`).**
 
 **Exit criteria:** the agent selects what to do next instead of blindly iterating over the 1,000-row ranking.
 
