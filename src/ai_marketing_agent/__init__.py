@@ -30,6 +30,8 @@ from .adapter_compiler import (
 from .content_core import ContentArtifact, ContentRequest, fingerprint, generate_content, jaccard_similarity, verify_claims
 from .engagement import EngagementEvent, EngagementOutcome, RateLimiter, draft_reply, gate_event, handle_event
 from .orchestrator import Campaign, ChannelCandidate, OrchestratorState, next_best_action, release, score_channel
+from .discovery import extract_page_model
+from .perf import SLO, TTLCache, ConcurrencyGate, BenchmarkResult, benchmark
 from .rollout import GATE_ITEMS, GateEvidence, GateVerdict, evaluate_gate, rollout_order
 from .saas import SaaSStore, Tenant
 from .evasion import AnomalySignals, DeadPool, EvasionDecision, check_dead_pool, evaluate as evaluate_anomalies
@@ -108,6 +110,12 @@ __all__ = [
     "GateVerdict",
     "evaluate_gate",
     "rollout_order",
+    "SLO",
+    "TTLCache",
+    "ConcurrencyGate",
+    "BenchmarkResult",
+    "benchmark",
+    "extract_page_model",
     "SaaSStore",
     "Tenant",
     "Campaign",
