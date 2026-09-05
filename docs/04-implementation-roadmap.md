@@ -195,21 +195,21 @@ End-user surfaces (onboarding, wizard, catalogue views, persona/content/calendar
 
 ## Phase 12 — Scale to the full catalogue
 
-Expansion gate for each new adapter family/channel:
+Expansion gate for each new adapter family/channel. **Implemented (`rollout.py:evaluate_gate`, 11 items, `tests/test_rollout_gate.py`):**
 
-- policy is current;
-- preflight URL/auth state is current;
-- adapter schema validates;
-- dry-run passes;
-- idempotency works;
-- success assertion is deterministic;
-- security/redaction tests pass;
-- three clean pilot E2E runs pass;
-- no duplicate submission;
-- audited CAPTCHA solving only (`Low`/`Moderate`/`High` via `auto_ensemble`); no ban evasion or blocked-endpoint submission;
-- measurable business outcome is captured where possible.
+- policy is current; **gate item `policy_current`**
+- preflight URL/auth state is current; **gate item `preflight_current`**
+- adapter schema validates; **gate item `schema_valid`**
+- dry-run passes; **gate item `dry_run_pass`**
+- idempotency works; **gate item `idempotency_ok`**
+- success assertion is deterministic; **gate item `assertion_deterministic`**
+- security/redaction tests pass; **gate item `security_redaction_pass`**
+- three clean pilot E2E runs pass; **gate item `pilot_runs_3x`**
+- no duplicate submission; **gate item `no_duplicate`**
+- audited CAPTCHA solving only (`Low`/`Moderate`/`High` via `auto_ensemble`); no ban evasion or blocked-endpoint submission; **gate item `no_access_control_bypass`**
+- measurable business outcome is captured where possible. **gate item `business_outcome_captured`**
 
-Roll out progressively from verified P0/P1 channels, then P2/P3 based on actual conversion and operational health.
+Roll out progressively from verified P0/P1 channels, then P2/P3 based on actual conversion and operational health. **Implemented (`rollout_order`: verified P0/P1 first, then health-sorted P2/P3; unverified last).**
 
 ## Definition of done
 
