@@ -19,6 +19,7 @@ from .providers import (
     OutlookGraphProvider,
     ProtonBridgeProvider,
     SmtpProvider,
+    TutaBridgeProvider,
     TutaProvider,
 )
 
@@ -42,5 +43,6 @@ __all__ = [
     "OutlookGraphProvider",
     "ProtonBridgeProvider",
     "SmtpProvider",
+    "TutaBridgeProvider",
     "TutaProvider",
 ]

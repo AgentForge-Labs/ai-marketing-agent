@@ -94,11 +94,14 @@ class BridgeWiringTests(unittest.TestCase):
         box.mark_processed("m1")
         self.assertEqual(box._box.marked, ["m1"])
 
-    def test_tuta_fails_loudly(self):
-        from mail_bridge import MailBridge, NotSupportedError
-        b = MailBridge(lambda r: "x")
-        with self.assertRaises(NotSupportedError):
-            b.open("vault://mail/tuta/brand")
+    def test_tuta_bridge_dispatch(self):
+        from mail_bridge import MailBridge, TutaProvider
+        b = MailBridge({"vault://mail/tuta/brand/user": "u@tuta.com",
+                        "vault://mail/tuta/brand/pass": "p"}.get)
+        box = b.open("vault://mail/tuta/brand")
+        self.assertIsInstance(box, TutaProvider)
+        self.assertEqual((box.inbox.host, box.inbox.port), ("127.0.0.1", 1143))
+        self.assertIsInstance(_get_mailbox("vault://mail/tuta/brand"), BridgeMailbox)
 
 
 class IdentityTests(unittest.TestCase):

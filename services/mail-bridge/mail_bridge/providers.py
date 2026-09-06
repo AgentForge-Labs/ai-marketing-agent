@@ -395,15 +395,31 @@ class OutlookGraphProvider:
                 "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
-class TutaProvider:
-    """Tuta Mail CANNOT be automated: no IMAP/SMTP/public API as of 2026.
+class TutaBridgeProvider(CustomProvider):
+    """Tuta Mail ONLY via a local unofficial bridge (same pattern as Proton Bridge).
 
-    Instantiating raises NotSupportedError with guidance (use Mailfence/Disroot/
-    custom domain instead). Kept as a named provider so configs fail loudly,
-    never silently.
+    Tuta exposes no official IMAP/SMTP/OAuth/public API (verified 2026). The
+    community bridge (e.g. tutaproxy, AGPL-3.0 — NOT vendored here, run it
+    yourself after auditing the code) translates local IMAP/SMTP to Tuta's
+    native API with client-side E2E crypto. Defaults match tutaproxy
+    (127.0.0.1:1143 IMAP / :1025 SMTP); remap ports if Proton Bridge runs too.
+    Caveats: unofficial (breaks on Tuta API changes), check Tuta ToS for your
+    use case, TOTP accounts need the bridge's TOTP env.
     """
 
-    def __init__(self, *a: Any, **k: Any) -> None:
-        raise NotSupportedError(
-            "tuta: no IMAP/SMTP/public API — automation unsupported; "
-            "use mailfence/disroot/custom or gmail instead")
+    def __init__(self, user: str, password: str, bridge_host: str = "127.0.0.1",
+                 imap_port: int = 1143, smtp_port: int = 1025, **kw: Any) -> None:
+        super().__init__(imap_host=bridge_host, imap_port=imap_port,
+                         smtp_host=bridge_host, smtp_port=smtp_port,
+                         user=user, password=password,
+                         imap_ssl=False, smtp_tls="none", **kw)
+
+
+class TutaProvider(TutaBridgeProvider):
+    """Tuta = bridge-only. Direct access raises; use the local bridge.
+
+    Instantiating with user/password targets the local bridge (see
+    TutaBridgeProvider). There is deliberately NO direct mode: Tuta offers no
+    official protocol, so a bare TutaProvider() without bridge intent would
+    fail confusingly — pass explicit bridge_host/ports to show intent.
+    """
