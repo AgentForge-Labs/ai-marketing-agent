@@ -80,6 +80,11 @@
     "useForDiscovery": true,
     "useForDriftRepair": true
   },
+  "identity": {
+    "profileId": "saashub-main",
+    "emailRef": "vault://sites/saashub/mail",
+    "ipRef": "vault://sites/saashub/ip"
+  },
   "flows": {
     "submitListing": {
       "execution": "browser_auto",

@@ -38,7 +38,9 @@ from urllib.parse import urlsplit
 # Vault resolution — same pattern as human_mouse/captcha_ensemble
 import sys
 
-for _p in [Path(__file__).resolve().parents[2] / "services", Path("services")]:
+for _p in [Path(__file__).resolve().parents[2] / "services", Path("services"),
+           Path(__file__).resolve().parents[2] / "services" / "mail-bridge",
+           Path("services/mail-bridge")]:
     if _p.exists() and str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
@@ -361,7 +363,78 @@ class GmailApiMailbox:
         pass
 
 
+BRIDGE_PROVIDERS = frozenset({"mailfence", "disroot", "custom", "proton", "gmail_imap", "tuta"})
+
+
+def _bridge_provider_of(mailbox_ref: str) -> Optional[str]:
+    parts = mailbox_ref.strip().split("/")
+    try:
+        i = parts.index("mail")
+        provider = parts[i + 1].lower()
+    except (ValueError, IndexError):
+        return None
+    return provider if provider in BRIDGE_PROVIDERS else None
+
+
+class BridgeMailbox:
+    """Vendored mail-bridge backend (#37): Gmail-IMAP/Proton/Mailfence/Disroot/custom.
+
+    Same connect/fetch_recent/mark_processed/close surface as ImapMailbox;
+    RawMail rows are adapted to the poll-loop dict shape. Tuta refs fail loudly
+    (NotSupportedError) instead of silently doing nothing.
+    """
+
+    def __init__(self, mailbox_ref: str):
+        self.mailbox_ref = mailbox_ref
+        self._box: Any = None
+
+    def _open(self) -> Any:
+        if self._box is None:
+            from mail_bridge import MailBridge
+            self._box = MailBridge(_vault_get).open(self.mailbox_ref)
+        return self._box
+
+    def connect(self) -> None:
+        box = self._open()
+        if hasattr(box, "connect"):
+            box.connect()
+
+    def close(self) -> None:
+        if self._box is not None:
+            try:
+                if hasattr(self._box, "close"):
+                    self._box.close()
+            except Exception:
+                pass
+
+    def mark_processed(self, mail_id: str) -> None:
+        try:
+            self._open().mark_processed(mail_id)
+        except Exception:
+            pass
+
+    def fetch_recent(self, since_minutes: int = 10, subject_contains: Optional[str] = None,
+                     from_contains: Optional[str] = None, limit: int = 10) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        for m in self._open().fetch_recent(since_minutes=since_minutes,
+                                           subject_contains=subject_contains,
+                                           from_contains=from_contains, limit=limit):
+            out.append({
+                "id": getattr(m, "id", ""),
+                "subject": getattr(m, "subject", ""),
+                "from": getattr(m, "from_addr", ""),
+                "date": "",
+                "body_text": getattr(m, "body_text", ""),
+                "body_html": getattr(m, "body_html", ""),
+            })
+            if len(out) >= limit:
+                break
+        return out
+
+
 def _get_mailbox(mailbox_ref: str):
+    if _bridge_provider_of(mailbox_ref):
+        return BridgeMailbox(mailbox_ref)
     cfg = MailboxConfig.from_ref(mailbox_ref)
     if cfg.protocol == "gmail_api":
         return GmailApiMailbox(cfg.gmail_token_ref or mailbox_ref)
