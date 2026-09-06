@@ -7,7 +7,7 @@ explicitly unsupported (NotSupportedError, documented in README).
 Secrets never live here: callers pass a loader mapping vault:// refs to values.
 Errors never echo secrets (redacted).
 """
-from .bridge import Mail, MailBridge, extract_code, extract_link
+from .bridge import Mail, MailBridge, Mailbox, extract_code, extract_link
 from .errors import MailBridgeError, NotSupportedError, ProviderError
 from .oauth import CachedToken, build_authorize_url, exchange_code, refresh_access_token
 from .providers import (
@@ -19,6 +19,7 @@ from .providers import (
     OutlookGraphProvider,
     ProtonBridgeProvider,
     SmtpProvider,
+    YandexProvider,
     TutaBridgeProvider,
     TutaProvider,
 )
@@ -26,6 +27,7 @@ from .providers import (
 __all__ = [
     "Mail",
     "MailBridge",
+    "Mailbox",
     "extract_code",
     "extract_link",
     "MailBridgeError",
@@ -43,6 +45,7 @@ __all__ = [
     "OutlookGraphProvider",
     "ProtonBridgeProvider",
     "SmtpProvider",
+    "YandexProvider",
     "TutaBridgeProvider",
     "TutaProvider",
 ]

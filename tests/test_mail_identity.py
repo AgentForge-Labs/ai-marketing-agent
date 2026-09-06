@@ -66,11 +66,23 @@ class BridgeWiringTests(unittest.TestCase):
         self.assertIsInstance(_get_mailbox("vault://mail/outlook/acme"), BridgeMailbox)
         self.assertIsInstance(_get_mailbox("vault://mail/hotmail/acme"), BridgeMailbox)
 
-    def test_vendored_bridge_v2_present(self):
+    def test_yandex_dispatch(self):
+        self.assertEqual(_bridge_provider_of("vault://mail/yandex/acme"), "yandex")
+        self.assertIsInstance(_get_mailbox("vault://mail/yandex/acme"), BridgeMailbox)
+
+    def test_vendored_bridge_v4_present(self):
         import mail_bridge
-        for name in ["CachedToken", "OutlookGraphProvider", "build_authorize_url",
-                     "refresh_access_token"]:
+        for name in ["CachedToken", "OutlookGraphProvider", "YandexProvider", "Mailbox",
+                     "build_authorize_url", "refresh_access_token"]:
             self.assertTrue(hasattr(mail_bridge, name), name)
+
+    def test_unified_facade_same_calls(self):
+        from mail_bridge import MailBridge
+        box = MailBridge({"vault://mail/yandex/acme/user": "u",
+                          "vault://mail/yandex/acme/pass": "p"}.get).mailbox("vault://mail/yandex/acme")
+        for method in ["connect", "close", "fetch_recent", "get_message", "search",
+                       "find_code", "find_link", "send", "mark_processed"]:
+            self.assertTrue(callable(getattr(box, method)), method)
 
     def test_get_mailbox_dispatch(self):
         self.assertIsInstance(_get_mailbox("vault://mail/disroot/brand"), BridgeMailbox)
