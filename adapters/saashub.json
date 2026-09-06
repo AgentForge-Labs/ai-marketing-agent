@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.1.0",
+  "siteId": "saashub",
+  "version": 1,
+  "lastVerifiedAt": "2026-09-06T00:00:00Z",
+  "persona": "brand",
+  "domains": [
+    "saashub.com"
+  ],
+  "policy": {
+    "sourceUrl": "https://www.saashub.com/terms",
+    "lastCheckedAt": "2026-09-06T00:00:00Z",
+    "execution": "browser_auto",
+    "allowedActions": [
+      "submitListing"
+    ],
+    "deniedActions": [
+      "bulkDm",
+      "autoComment",
+      "fakeReview"
+    ]
+  },
+  "auth": {
+    "mode": "storageState",
+    "storageStateRef": "vault://sites/saashub/session",
+    "refreshPolicy": "onExpiry"
+  },
+  "limits": {
+    "maxConcurrency": 1,
+    "maxActionsPerHour": 2,
+    "maxActionsPerDay": 5,
+    "minDelaySecondsBetweenActions": 120
+  },
+  "retry": {
+    "maxAttempts": 2,
+    "backoffSeconds": [600, 3600],
+    "retryOn": ["timeout", "networkError", "rateLimited"]
+  },
+  "captcha": {
+    "policy": "auto_ensemble",
+    "strategy": "auto_ensemble",
+    "solvers": ["capsolver", "2captcha", "ai_lmm", "buster"],
+    "capSolver": {
+      "apiKeyRef": "vault://captcha/capsolver/apiKey",
+      "server": "https://api.capsolver.com",
+      "defaultTimeout": 120,
+      "pollingInterval": 5
+    },
+    "twoCaptcha": {
+      "apiKeyRef": "vault://captcha/2captcha/apiKey",
+      "server": "2captcha.com",
+      "defaultTimeout": 120,
+      "recaptchaTimeout": 600,
+      "pollingInterval": 10
+    },
+    "aiLmm": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "apiKeyRef": "vault://llm/openai/apiKey",
+      "solverTypes": ["text", "recaptcha_v2", "puzzle"]
+    },
+    "buster": {
+      "enabled": true,
+      "useBsplineMouse": true
+    },
+    "proxyRef": "vault://proxy/residential/uri"
+  },
+  "biometricMouse": {
+    "enabled": true,
+    "profileRef": "vault://mouse/profile/mouse_profile.json",
+    "rotationMinutes": 30,
+    "variancePercent": 8,
+    "source": "ai_mouse/playwright_integration.py PlaywrightHumanMouse"
+  },
+  "semanticBrowser": {
+    "enabled": true,
+    "serviceUrl": "http://127.0.0.1:8765",
+    "mode": "summary",
+    "topActions": 25,
+    "useForDiscovery": true,
+    "useForDriftRepair": true
+  },
+  "flows": {
+    "submitListing": {
+      "execution": "browser_auto",
+      "entryUrl": "https://www.saashub.com/submit",
+      "fields": [],
+      "success": []
+    }
+  },
+  "notes": "DRAFT pilot adapter 2026-09-06 (matrix rank 16, Low submit via local_browser_agent). Rendered DOM snapshot (data/dom_snapshots/saashub_rendered.html) proves the public /submit page exposes NO submit fields: submission is an authenticated JS flow. No locators fabricated: fields/success stay empty, so the runner fails closed (missing success signals) until an authenticated session reveals the real form. Live execution requires vault://sites/saashub/session + re-check of current ToS. NO live submit performed."
+}
