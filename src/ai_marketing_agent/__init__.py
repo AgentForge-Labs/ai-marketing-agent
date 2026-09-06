@@ -33,6 +33,7 @@ from .orchestrator import Campaign, ChannelCandidate, OrchestratorState, next_be
 from .discovery import extract_page_model
 from .metrics import Metrics, get_metrics
 from .api import ApiServer
+from .session import SessionStore, extract_session
 from .values import ValuesError, default_values_fn, resolve_values
 from .worker import run_once, serve_forever
 from .orchestrator import AccountPacer, PacingRule
@@ -135,6 +136,8 @@ __all__ = [
     "ValuesError",
     "default_values_fn",
     "resolve_values",
+    "SessionStore",
+    "extract_session",
     "SaaSStore",
     "Tenant",
     "Campaign",

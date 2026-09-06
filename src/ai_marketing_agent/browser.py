@@ -135,6 +135,7 @@ class BrowserProvider:
         proxy_ref: Optional[str] = None,
         is_discovery: bool = False,
         headless: Optional[bool] = None,
+        session_state: Optional[Dict[str, Any]] = None,
     ) -> BrowserLaunchResult:
         """
         is_discovery: discovery ve normal mod aynı provider'ı kullanır, sadece audit farkı.
@@ -189,7 +190,15 @@ class BrowserProvider:
         pw = await async_playwright().start()
         # Proxy per-tenant: her tenant farklı IP'den çıkar
         browser = await pw.chromium.launch(headless=use_headless, proxy=proxy_cfg)  # type: ignore
-        context = await browser.new_context(proxy=proxy_cfg) if proxy_cfg else await browser.new_context()
+        # Session restore: login once, reuse cookies (#31). Invalid state -> fresh context.
+        ctx_kwargs: Dict[str, Any] = {"proxy": proxy_cfg} if proxy_cfg else {}
+        if session_state and isinstance(session_state.get("cookies"), list):
+            ctx_kwargs["storage_state"] = session_state
+        try:
+            context = await browser.new_context(**ctx_kwargs)  # type: ignore
+        except Exception:
+            ctx_kwargs.pop("storage_state", None)
+            context = await browser.new_context(**ctx_kwargs)  # type: ignore
         page = await context.new_page()
         mode = "headed" if not use_headless else "headless"
         return BrowserLaunchResult(browser=browser, context=context, page=page, mode=mode, proxy_used=proxy_uri)
