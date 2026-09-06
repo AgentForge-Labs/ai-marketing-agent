@@ -113,6 +113,9 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(400, {"error": "subject_id and purpose required"})
                 return
             self._send(200, {"has_consent": self.server.store.has_consent(tenant, subject, purpose)})
+        elif path == "/mail/accounts":
+            from . import mail_accounts as _ma
+            self._send(200, {"accounts": _ma.list_accounts(self.server.store.conn, tenant)})
         else:
             self._send(404, {"error": "not found"})
 
@@ -155,6 +158,63 @@ class _Handler(BaseHTTPRequestHandler):
             else:
                 self.server.store.withdraw_consent(tenant, subject, purpose)
             self._send(200, {"ok": True, "action": action})
+        elif path == "/mail/accounts":
+            from . import mail_accounts as _ma
+            try:
+                saved = _ma.save_account(
+                    self.server.store.conn, tenant, name=body.get("name", ""),
+                    provider=body.get("provider", ""), account=body.get("account", ""),
+                    config=body.get("config"), secrets=body.get("secrets"))
+            except ValueError as e:
+                self._send(400, {"error": str(e)[:200]})
+                return
+            self._send(200, saved)
+        elif path == "/mail/accounts/test":
+            from . import mail_accounts as _ma
+            acct = next((a for a in _ma.list_accounts(self.server.store.conn, tenant)
+                         if a["name"] == body.get("name", "")), None)
+            if acct is None:
+                self._send(404, {"error": f"unknown mail account: {body.get('name', '')}"})
+                return
+            self._send(200, _ma.test_connection(
+                f"vault://mail/{acct['provider']}/{acct['account']}"))
+        elif path == "/mail/oauth_url":
+            from . import mail_accounts as _ma
+            try:
+                url = _ma.oauth_authorize_url(
+                    body.get("provider", ""), client_id=body.get("client_id", ""),
+                    redirect_uri=body.get("redirect_uri", ""), state=body.get("state", ""))
+            except ValueError as e:
+                self._send(400, {"error": str(e)[:200]})
+                return
+            self._send(200, {"authorize_url": url})
+        elif path == "/mail/oauth_exchange":
+            from . import mail_accounts as _ma
+            name = body.get("name", "")
+            acct = next((a for a in _ma.list_accounts(self.server.store.conn, tenant)
+                         if a["name"] == name), None)
+            if acct is None:
+                self._send(404, {"error": f"unknown mail account: {name}"})
+                return
+            try:
+                toks = _ma.oauth_exchange(
+                    body.get("provider", acct["provider"]), account=acct["account"],
+                    client_id=body.get("client_id", ""), code=body.get("code", ""),
+                    redirect_uri=body.get("redirect_uri", ""),
+                    client_secret=body.get("client_secret", ""))
+            except Exception as e:
+                self._send(400, {"error": f"{type(e).__name__}"})
+                return
+            try:
+                saved = _ma.save_account(
+                    self.server.store.conn, tenant, name=name, provider=acct["provider"],
+                    account=acct["account"],
+                    config={**(acct.get("config") or {}), "client_id": body.get("client_id", "")},
+                    secrets={"refresh": toks["refresh_token"]})
+            except ValueError as e:
+                self._send(400, {"error": str(e)[:200]})
+                return
+            self._send(200, saved)
         else:
             self._send(404, {"error": "not found"})
 
