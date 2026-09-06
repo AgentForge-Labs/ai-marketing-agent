@@ -95,7 +95,11 @@ def run_once(
         return "quarantined"
 
     try:
-        values = (values_fn or (lambda _a, _j: {}))(adapter, job)
+        if values_fn is None:
+            from .values import default_values_fn
+            values = default_values_fn(adapter, job)
+        else:
+            values = values_fn(adapter, job)
     except Exception as e:
         fail_job(conn, job.id, f"values_failed:{str(e)[:120]}")
         return "failed"

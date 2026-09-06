@@ -255,6 +255,8 @@ class AutonomousRunner:
                         loc = page.get_by_label(loc_def.get("name") or loc_def.get("value"))
                     elif kind == "placeholder":
                         loc = page.get_by_placeholder(loc_def.get("value"))
+                    elif kind == "testId":
+                        loc = page.get_by_test_id(loc_def.get("value"))
                     elif kind == "css":
                         loc = page.locator(loc_def.get("value"))
                     if loc:
