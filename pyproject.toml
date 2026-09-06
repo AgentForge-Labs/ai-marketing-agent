@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-marketing-agent"
+version = "1.0.0"
+description = "Compliance-first 0-HITL SaaS marketing automation runtime (policy-gated)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["requests>=2.31,<3"]
+
+[project.scripts]
+ai-marketing-agent = "ai_marketing_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
