@@ -52,6 +52,11 @@ class FakePage:
     def get_by_placeholder(self, value):
         raise RuntimeError("no placeholder locators in fake")
 
+    def get_by_test_id(self, value):
+        if value not in self.present_selectors:
+            raise RuntimeError(f"testid not present: {value}")
+        return FakeLocator(self, f"testid={value}")
+
     def locator(self, selector):
         if selector not in self.present_selectors:
             raise RuntimeError(f"selector not present: {selector}")
@@ -152,6 +157,17 @@ class RunnerCompletionTests(unittest.TestCase):
         )
         self.assertEqual(r.status, "done")
         self.assertTrue(seen.get("content_called"), "success text must be read from the submitting page")
+
+    def test_testid_locator_supported(self):
+        field = {"valueFrom": "product.name", "required": True,
+                 "locators": [{"kind": "testId", "value": "listing-name-input"}]}
+        page = FakePage(present_selectors={"listing-name-input", "#submit"})
+        r = self.run_flow(
+            make_runner(), page, flow_with([field], [{"kind": "text", "matches": "is live"}]),
+            values={"product.name": "Acme"},
+        )
+        self.assertEqual(r.status, "done")
+        self.assertEqual(page.filled.get("testid=listing-name-input"), "Acme")
 
     def test_no_placeholder_fill_in_prod_path(self):
         page = FakePage(present_selectors={"#name", "#submit"})
