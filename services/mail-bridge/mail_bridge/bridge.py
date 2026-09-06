@@ -16,6 +16,7 @@ from .providers import (
     RawMail,
     SmtpProvider,
     TutaProvider,
+    YandexProvider,
 )
 
 Loader = Callable[[str], Optional[str]]
@@ -51,7 +52,7 @@ def extract_link(text: str, pattern: Optional[str] = None) -> Optional[str]:
 # ref: vault://mail/<provider>/<account>  (account = secret namespace suffix)
 # hotmail is an alias of outlook (same Microsoft Graph endpoint).
 PROVIDERS = ("gmail", "gmail_imap", "proton", "mailfence", "disroot", "custom",
-             "outlook", "hotmail", "tuta")
+             "outlook", "hotmail", "yandex", "tuta")
 
 
 class MailBridge:
@@ -71,6 +72,10 @@ class MailBridge:
             if val:
                 return val
         return None
+
+    def mailbox(self, mailbox_ref: str, capabilities: Optional[Dict[str, bool]] = None) -> Mailbox:
+        """Unified entry: ref -> Mailbox with the identical surface on every provider."""
+        return Mailbox(self.open(mailbox_ref, capabilities))
 
     def open(self, mailbox_ref: str, capabilities: Optional[Dict[str, bool]] = None) -> Any:
         parts = mailbox_ref.strip().split("/")
@@ -119,6 +124,8 @@ class MailBridge:
             return MailfenceProvider(user or "", password or "")
         if provider == "disroot":
             return DisrootProvider(user or "", password or "")
+        if provider == "yandex":
+            return YandexProvider(user or "", password or "")
         # custom: explicit host/ports required
         host = self._get(f"{ns}/imap_host", f"{ns}/host")
         if not host:
@@ -169,3 +176,86 @@ class MailBridge:
 def to_mail(raw: RawMail) -> Mail:
     return Mail(id=raw.id, subject=raw.subject, from_addr=raw.from_addr,
                 date_ts=raw.date_ts, body_text=raw.body_text, body_html=raw.body_html)
+
+
+class Mailbox:
+    """THE unified facade (v4 contract): identical calls on every provider.
+
+    Consumers use only this class — switching providers changes NOTHING:
+      box = MailBridge(loader).mailbox("vault://mail/<anything>/<acct>")
+      box.connect(); box.search(...); box.get_message(id); box.find_code(...); box.send(...)
+
+    Every read returns Mail; every send takes (to, subject, body_text, body_html).
+    """
+
+    def __init__(self, provider: Any) -> None:
+        self._p = provider
+
+    # -- lifecycle (no-ops where the transport is stateless) --
+    def connect(self) -> None:
+        if hasattr(self._p, "connect"):
+            self._p.connect()
+
+    def close(self) -> None:
+        if hasattr(self._p, "close"):
+            try:
+                self._p.close()
+            except Exception:
+                pass
+
+    # -- reads, always list[Mail] / Mail --
+    def fetch_recent(self, since_minutes: int = 10, subject_contains: Optional[str] = None,
+                     from_contains: Optional[str] = None, limit: int = 10) -> List[Mail]:
+        return [to_mail(m) for m in self._p.fetch_recent(
+            since_minutes=since_minutes, subject_contains=subject_contains,
+            from_contains=from_contains, limit=limit)][:limit]
+
+    def get_message(self, mail_id: str) -> Mail:
+        return to_mail(self._p.get_message(mail_id))
+
+    def search(self, *, subject: Optional[str] = None, from_: Optional[str] = None,
+               contains: Optional[str] = None, since_minutes: int = 60,
+               limit: int = 10) -> List[Mail]:
+        """Unified search: subject/from filters + free-text over subject+bodies."""
+        mails = self.fetch_recent(since_minutes=since_minutes, subject_contains=subject,
+                                  from_contains=from_, limit=max(limit * 3, limit))
+        if contains:
+            needle = contains.lower()
+            mails = [m for m in mails
+                     if needle in (m.subject or "").lower()
+                     or needle in (m.body_text or "").lower()
+                     or needle in (m.body_html or "").lower()]
+        return mails[:limit]
+
+    def find_code(self, *, subject: Optional[str] = None, from_: Optional[str] = None,
+                  since_minutes: int = 10, mark_processed: bool = True) -> Optional[str]:
+        """First 4-8 digit code in matching mails (marks consumed by default)."""
+        for m in self.search(subject=subject, from_=from_, since_minutes=since_minutes):
+            code = extract_code(f"{m.subject} {m.body_text} {m.body_html}")
+            if code:
+                if mark_processed:
+                    self.mark_processed(m.id)
+                return code
+        return None
+
+    def find_link(self, *, pattern: Optional[str] = None, subject: Optional[str] = None,
+                  from_: Optional[str] = None, since_minutes: int = 10,
+                  mark_processed: bool = True) -> Optional[str]:
+        for m in self.search(subject=subject, from_=from_, since_minutes=since_minutes):
+            link = extract_link(f"{m.body_text} {m.body_html}", pattern)
+            if link:
+                if mark_processed:
+                    self.mark_processed(m.id)
+                return link
+        return None
+
+    # -- write, identical signature everywhere --
+    def send(self, to: str, subject: str, body_text: str = "", body_html: str = "",
+             from_addr: Optional[str] = None) -> Dict[str, str]:
+        return self._p.send(to, subject, body_text, body_html, from_addr)
+
+    def mark_processed(self, mail_id: str) -> None:
+        try:
+            self._p.mark_processed(mail_id)
+        except Exception:
+            pass

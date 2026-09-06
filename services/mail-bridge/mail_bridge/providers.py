@@ -113,6 +113,25 @@ class ImapProvider:
         except Exception:
             pass
 
+    def get_message(self, mail_id: str) -> RawMail:
+        """Full content of one message by id (unified facade backing)."""
+        if not self.conn:
+            self.connect()
+        assert self.conn is not None
+        try:
+            typ, msg_data = self.conn.fetch(mail_id.encode() if isinstance(mail_id, str) else mail_id,
+                                            "(RFC822)")
+        except Exception as e:
+            raise ProviderError(f"imap fetch failed: {type(e).__name__}")
+        if typ != "OK" or not msg_data or not msg_data[0]:
+            raise ProviderError(f"imap message not found: {mail_id}")
+        raw = msg_data[0][1] if isinstance(msg_data[0], tuple) else msg_data[0]
+        if not isinstance(raw, (bytes, bytearray)):
+            raise ProviderError("imap message undecodable")
+        mail = parse_rfc822(bytes(raw))
+        mail.id = str(mail_id)
+        return mail
+
     def fetch_recent(self, since_minutes: int = 10, subject_contains: Optional[str] = None,
                      from_contains: Optional[str] = None, limit: int = 10) -> List[RawMail]:
         if not self.conn:
@@ -239,6 +258,18 @@ class DisrootProvider(CustomProvider):
                          user=user, password=password, **kw)
 
 
+class YandexProvider(CustomProvider):
+    """Yandex Mail: standard IMAP+SMTP (imap.yandex.com:993 / smtp.yandex.com:465 SSL).
+
+    Use an app password (account security settings); the account password works
+    only if 2FA/app-passwords allow it. No OAuth needed for this path.
+    """
+
+    def __init__(self, user: str, password: str, **kw: Any) -> None:
+        super().__init__(imap_host="imap.yandex.com", smtp_host="smtp.yandex.com",
+                         user=user, password=password, **kw)
+
+
 class ProtonBridgeProvider(CustomProvider):
     """Proton Mail ONLY via the local Proton Bridge (Proton exposes no direct IMAP).
 
@@ -252,6 +283,30 @@ class ProtonBridgeProvider(CustomProvider):
                          smtp_host=bridge_host, smtp_port=smtp_port,
                          user=user, password=password,
                          imap_ssl=False, smtp_tls="starttls", **kw)
+
+
+def _gmail_body_text(payload: dict) -> Tuple[str, str]:
+    """Walk Gmail payload parts -> (plain, html), base64url-decoded."""
+    plain, html = "", []
+
+    def walk(part: dict) -> None:
+        mime = (part.get("mimeType") or "")
+        data = ((part.get("body") or {}).get("data") or "")
+        if data and mime.startswith("text/"):
+            try:
+                text = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("utf-8", errors="ignore")
+            except Exception:
+                text = ""
+            if mime == "text/plain":
+                nonlocal plain
+                plain += text
+            elif mime == "text/html":
+                html.append(text)
+        for sub in part.get("parts") or []:
+            walk(sub)
+
+    walk(payload or {})
+    return plain, "".join(html)
 
 
 class GmailApiProvider:
@@ -277,6 +332,20 @@ class GmailApiProvider:
         except (HTTPError, URLError) as e:
             raise ProviderError(f"gmail api failed: {type(e).__name__}")
 
+    def get_message(self, mail_id: str) -> RawMail:
+        """Full content of one message (unified facade backing)."""
+        full = self._call("GET", f"/gmail/v1/users/me/messages/{mail_id}?format=full")
+        headers = {h["name"].lower(): h["value"]
+                   for h in (full.get("payload", {}).get("headers") or [])}
+        try:
+            ts = int(full.get("internalDate", "0")) / 1000.0
+        except ValueError:
+            ts = time.time()
+        plain, html = _gmail_body_text(full.get("payload", {}))
+        return RawMail(id=mail_id, subject=headers.get("subject", ""),
+                       from_addr=headers.get("from", ""), date_ts=ts,
+                       body_text=plain, body_html=html)
+
     def fetch_recent(self, since_minutes: int = 10, subject_contains: Optional[str] = None,
                      from_contains: Optional[str] = None, limit: int = 10) -> List[RawMail]:
         q = [f"newer_than:{max(1, int(since_minutes // 60) or 1)}h"]
@@ -287,15 +356,7 @@ class GmailApiProvider:
         listing = self._call("GET", f"/gmail/v1/users/me/messages?q={' '.join(q)}&maxResults={limit}")
         out: List[RawMail] = []
         for m in (listing.get("messages") or [])[:limit]:
-            full = self._call("GET", f"/gmail/v1/users/me/messages/{m['id']}?format=full")
-            headers = {h["name"].lower(): h["value"]
-                       for h in (full.get("payload", {}).get("headers") or [])}
-            try:
-                ts = int(full.get("internalDate", "0")) / 1000.0
-            except ValueError:
-                ts = time.time()
-            out.append(RawMail(id=m["id"], subject=headers.get("subject", ""),
-                               from_addr=headers.get("from", ""), date_ts=ts))
+            out.append(self.get_message(m["id"]))
             try:  # mark read (best-effort, never fails the fetch)
                 self._call("POST", f"/gmail/v1/users/me/messages/{m['id']}/modify",
                            {"removeLabelIds": ["UNREAD"]})
@@ -310,10 +371,17 @@ class GmailApiProvider:
         except ProviderError:
             pass
 
-    def send(self, to: str, subject: str, body_text: str = "", **kw: Any) -> Dict[str, str]:
-        raw = base64.urlsafe_b64encode(
-            f"To: {to}\r\nSubject: {subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n{body_text}".encode()
-        ).decode()
+    def send(self, to: str, subject: str, body_text: str = "", body_html: str = "",
+             from_addr: Optional[str] = None, **kw: Any) -> Dict[str, str]:
+        msg = EmailMessage()
+        if from_addr:
+            msg["From"] = from_addr
+        msg["To"] = to
+        msg["Subject"] = subject
+        msg.set_content(body_text or "")
+        if body_html:
+            msg.add_alternative(body_html, subtype="html")
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
         res = self._call("POST", "/gmail/v1/users/me/messages/send", {"raw": raw})
         return {"id": res.get("id", ""), "to": to}
 
@@ -353,6 +421,21 @@ class OutlookGraphProvider:
         except (HTTPError, URLError) as e:
             raise ProviderError(f"outlook graph failed: {type(e).__name__}")
 
+    def get_message(self, mail_id: str) -> RawMail:
+        """Full content of one message (unified facade backing)."""
+        m = self._call("GET", f"/me/messages/{mail_id}?$select=id,subject,from,receivedDateTime,body")
+        try:
+            ts = parsedate_to_datetime(m.get("receivedDateTime", "")).timestamp()
+        except Exception:
+            ts = time.time()
+        body = m.get("body") or {}
+        content, ctype = body.get("content", "") or "", (body.get("contentType") or "").lower()
+        return RawMail(id=m.get("id", ""), subject=m.get("subject", "") or "",
+                       from_addr=((m.get("from") or {}).get("emailAddress") or {}).get("address", ""),
+                       date_ts=ts,
+                       body_text=content if ctype == "text" else "",
+                       body_html=content if ctype == "html" else "")
+
     def fetch_recent(self, since_minutes: int = 10, subject_contains: Optional[str] = None,
                      from_contains: Optional[str] = None, limit: int = 10) -> List[RawMail]:
         res = self._call("GET", f"/me/messages?$top={max(1, min(limit, 50))}"
@@ -383,14 +466,20 @@ class OutlookGraphProvider:
         except ProviderError:
             pass
 
-    def send(self, to: str, subject: str, body_text: str = "", **kw: Any) -> Dict[str, str]:
+    def send(self, to: str, subject: str, body_text: str = "", body_html: str = "",
+             from_addr: Optional[str] = None, **kw: Any) -> Dict[str, str]:
         if not to or not subject:
             raise ProviderError("send needs to + subject")
-        self._call("POST", "/me/sendMail", {"message": {
+        html = bool(body_html)
+        message: Dict[str, Any] = {
             "subject": subject,
-            "body": {"contentType": "Text", "content": body_text or ""},
+            "body": {"contentType": "Html" if html else "Text",
+                     "content": body_html if html else (body_text or "")},
             "toRecipients": [{"emailAddress": {"address": to}}],
-        }, "saveToSentItems": True})
+        }
+        if from_addr:
+            message["fromRecipients"] = [{"emailAddress": {"address": from_addr}}]
+        self._call("POST", "/me/sendMail", {"message": message, "saveToSentItems": True})
         return {"to": to, "subject": subject,
                 "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
