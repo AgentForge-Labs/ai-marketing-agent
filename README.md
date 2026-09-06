@@ -119,6 +119,18 @@ The first production milestone is not “run all 1,000 channels.” It is a dete
 6. validate at least three clean end-to-end runs per adapter family;
 7. expand by measured conversion, reliability, and policy-health scores.
 
+## Quickstart
+
+```bash
+pip install -e .            # installs `ai-marketing-agent` console script
+ai-marketing-agent linkedin.com post          # route one action (no external calls)
+ai-marketing-agent producthunt.com vote       # -> auto_quarantine
+python -m unittest discover -s tests          # full suite (229 tests)
+python scripts/check_policy_contract.py       # contract drift guard
+```
+
+Secrets are never passed on the CLI: API keys, proxies and profiles are `vault://` references (see `docs/05-vault-credentials-mapping.md`).
+
 ## Executable risk-router runtime
 
 The repository now includes a zero-dependency Python runtime foundation under `src/ai_marketing_agent/`. It strictly imports the canonical CSV, validates all 8 action-risk cells for every channel, recomputes the minimum supported-medium risk, verifies the declared `best=` route, and fails closed on malformed or unknown data.
