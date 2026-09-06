@@ -53,6 +53,24 @@ def _require_locator(loc: Any, path: str) -> Dict[str, Any]:
     return loc
 
 
+def _validate_email_code(block: Any) -> None:
+    """Bounds for the pre-success emailCode block (#35): code or link, bounded wait."""
+    if not isinstance(block, dict):
+        raise CompileError("emailCode must be an object")
+    selector = block.get("codeSelector")
+    pattern = block.get("linkPattern")
+    if not selector and not pattern:
+        raise CompileError("emailCode needs codeSelector and/or linkPattern")
+    if selector is not None and not isinstance(selector, str):
+        raise CompileError("emailCode.codeSelector must be a string")
+    timeout = block.get("timeoutS", 120)
+    if not isinstance(timeout, (int, float)) or not (1 <= timeout <= 600):
+        raise CompileError("emailCode.timeoutS must be 1..600 seconds")
+    ref = block.get("mailboxRef", "vault://mail/imap/default")
+    if not str(ref).startswith("vault://"):
+        raise CompileError("emailCode.mailboxRef must be vault://")
+
+
 def compile_flow(flow: Dict[str, Any], *, dry_run: bool = False) -> List[Dict[str, Any]]:
     """Compile one flow (web kind) into a bounded action plan.
 
@@ -61,6 +79,8 @@ def compile_flow(flow: Dict[str, Any], *, dry_run: bool = False) -> List[Dict[st
     if not isinstance(flow, dict):
         raise CompileError("flow must be an object")
     _deep_scan_forbidden(flow)
+    if "emailCode" in flow:
+        _validate_email_code(flow["emailCode"])
     plan: List[Dict[str, Any]] = []
 
     def _compile_step(step: Dict[str, Any], prefix: str) -> None:
