@@ -1,9 +1,10 @@
-"""#28 UI inventory guard: *.html may only live in dashboard/ or mouse_dojo/."""
+"""#28 UI inventory guard: *.html may only live in known dirs (never served except dashboard/)."""
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ALLOWED_PARENTS = (ROOT / "dashboard", ROOT / "services" / "biometric-mouse" / "mouse_dojo")
+ALLOWED_PARENTS = (ROOT / "dashboard", ROOT / "services" / "biometric-mouse" / "mouse_dojo",
+                   ROOT / "data" / "dom_snapshots")
 SKIP_PARTS = {".git", "__pycache__", ".pytest_cache", "node_modules", ".venv", "venv"}
 
 

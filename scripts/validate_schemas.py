@@ -15,7 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     failures = 0
-    for path in sorted((ROOT / "schemas").glob("*.json")) + sorted((ROOT / "examples").glob("*.json")):
+    adapters = ROOT / "adapters"
+    extra = sorted(adapters.glob("*.json")) if adapters.exists() else []
+    for path in sorted((ROOT / "schemas").glob("*.json")) + sorted((ROOT / "examples").glob("*.json")) + extra:
         try:
             json.loads(path.read_text(encoding="utf-8"))
             print(f"OK: {path.relative_to(ROOT)}")
