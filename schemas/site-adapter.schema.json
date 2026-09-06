@@ -395,6 +395,46 @@
           },
           "description": "Yalnızca kind=api."
         },
+        "emailCode": {
+          "type": "object",
+          "description": "Akış-içi doğrulama kodu adımı (#35): success assertion ÖNCESİ koşar, bulunamazsa run fail eder. Kod human-like doldurulur veya link aynı session'da açılır; ham kod/link asla loglanmaz.",
+          "required": [],
+          "properties": {
+            "mailboxRef": {
+              "type": "string",
+              "description": "vault://... biçiminde kimlik bilgisi referansı."
+            },
+            "codeSelector": {
+              "type": "string",
+              "description": "Kodun yazılacağı input seçicisi (kod akışı için gerekli)."
+            },
+            "linkPattern": {
+              "type": "string",
+              "description": "Tıklanacak doğrulama bağlantısının regex deseni (link akışı için gerekli)."
+            },
+            "allowedDomains": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Link SADECE bu domainlerden birindeyse açılır. Boş/yoksa generic link asla açılmaz (fail-closed)."
+            },
+            "processMode": {
+              "enum": ["clickLink", "extractOnly"],
+              "default": "clickLink"
+            },
+            "markProcessed": {
+              "type": "boolean",
+              "default": true
+            },
+            "subjectContains": { "type": "string" },
+            "fromContains": { "type": "string" },
+            "timeoutS": {
+              "type": "number",
+              "description": "1..600 saniye; kod/link gelmezse run fail eder.",
+              "minimum": 1,
+              "maximum": 600
+            }
+          }
+        },
         "mailbox": {
           "type": "object",
           "description": "Yalnızca kind=email. Kendi gelen kutusunun otomatik okunması ve doğrulama bağlantısına otomatik tıklanması.",

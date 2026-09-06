@@ -320,6 +320,32 @@ class AutonomousRunner:
             except Exception as e:
                 return RunnerResult(status="failed", detail={"reason": f"submit failed: {e}"}, audit=self.audit)
 
+        # 6b. Email code step (#35) — pre-success, fail-closed. Code/link flows
+        # (register) need the code entered BEFORE the verdict page exists.
+        email_code = flow.get("emailCode")
+        if isinstance(email_code, dict):
+            try:
+                ev = await handle_verification(
+                    page,
+                    mailbox_ref=email_code.get("mailboxRef", "vault://mail/imap/default"),
+                    tenant_id=str(self.decision.domain),
+                    code_selector=email_code.get("codeSelector"),
+                    link_pattern=email_code.get("linkPattern"),
+                    allowed_domains=email_code.get("allowedDomains"),
+                    process_mode=email_code.get("processMode", "clickLink"),
+                    mark_processed=bool(email_code.get("markProcessed", True)),
+                    subject_contains=email_code.get("subjectContains"),
+                    from_contains=email_code.get("fromContains"),
+                    timeout_minutes=max(1, int((float(email_code.get("timeoutS", 120)) + 59) // 60)),
+                    idempotency_key=f"{self.decision.domain}:{flow.get('entryUrl') or 'flow'}:email-code",
+                )
+            except Exception as e:
+                self._log("email_code_failed", {"error": str(e)[:200]})
+                return RunnerResult(status="failed", detail={"reason": "email_code_failed"}, audit=self.audit)
+            self._log("email_code", {"found": ev.get("found"), "type": ev.get("type")})
+            if not ev.get("found"):
+                return RunnerResult(status="failed", detail={"reason": "email_code_not_found"}, audit=self.audit)
+
         # 7. Success assertion — adapter `success` signals evaluated on the SAME
         # page/session that submitted. A separate semantic session is NEVER the
         # verdict source; it is only kept for drift logging.
