@@ -41,6 +41,49 @@ def load_adapter(site_id: str, *, adapters_dir: Optional[Path] = None) -> Option
         return None
 
 
+def _proxy_host_hint(adapter: Dict[str, Any]) -> str:
+    """Best-effort IP/URI host from adapter proxy refs (golden-rule input)."""
+    from urllib.parse import urlsplit
+
+    for ref in [((adapter.get("captcha") or {}).get("proxyRef") or "")]:
+        if "://" in ref or "@" in ref:
+            try:
+                host = urlsplit(ref if "://" in ref else f"http://{ref}").hostname or ""
+                if host:
+                    return host
+            except Exception:
+                pass
+    return ""
+
+
+def _enforce_identity(conn: Any, job: Any, adapter: Dict[str, Any], decision: Any) -> None:
+    """No identity block = nothing to enforce (dry/test adapters). Otherwise fail closed."""
+    from .identity import IdentityViolation, check_identity, ensure_identity_tables
+
+    ident = adapter.get("identity") or {}
+    if not ident:
+        return
+    from .values import default_loader
+
+    ensure_identity_tables(conn)
+    email_ref = ident.get("emailRef", "")
+    if not str(email_ref).startswith("vault://"):
+        raise IdentityViolation("identity.emailRef must be vault://")
+    email = default_loader(email_ref)
+    if not email:
+        raise IdentityViolation(f"identity mail unresolvable: {email_ref}")
+    ip = ""
+    if ident.get("ipRef"):
+        if not str(ident["ipRef"]).startswith("vault://"):
+            raise IdentityViolation("identity.ipRef must be vault://")
+        ip = default_loader(ident["ipRef"]) or ""
+    ip = ip or _proxy_host_hint(adapter)
+    if not ip:
+        raise IdentityViolation("identity needs ipRef or a URI proxyRef")
+    profile_id = str(ident.get("profileId") or f"{job.tenant_id}:{job.site_id}")
+    check_identity(conn, job.tenant_id, getattr(decision, "domain", ""), profile_id, email, ip)
+
+
 def _default_run_fn(adapter: Dict[str, Any], decision: Any, flow: Dict[str, Any],
                     values: Dict[str, Any]) -> Any:
     """Real browser path. Raises RuntimeError when browser deps are unavailable."""
@@ -92,6 +135,13 @@ def run_once(
         return "quarantined"
     if not decision.should_execute:
         quarantine_job(conn, job.id, f"router_quarantine:{decision.reason if hasattr(decision, 'reason') else ''}"[:200])
+        return "quarantined"
+
+    # Golden-rule gate (#37): identity breach quarantines BEFORE any browser launches.
+    try:
+        _enforce_identity(conn, job, adapter, decision)
+    except Exception as e:
+        quarantine_job(conn, job.id, f"identity:{type(e).__name__}:{str(e)[:150]}")
         return "quarantined"
 
     try:

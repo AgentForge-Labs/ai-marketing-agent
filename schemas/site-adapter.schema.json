@@ -879,6 +879,24 @@
     "notes": {
       "type": "string",
       "description": "İnsan okur açıklama; runner tarafından yok sayılır."
+    },
+    "identity": {
+      "type": "object",
+      "description": "Altın kural (#37): 1 site-profili = 1 mail + 1 browser profili + 1 IP. Worker launch öncesi zorunlu kontrol.",
+      "properties": {
+        "profileId": {
+          "type": "string",
+          "description": "Browser profili kimliği (varsayılan tenant:site)."
+        },
+        "emailRef": {
+          "type": "string",
+          "description": "Zorunlu vault:// mail referansı (mail-bridge ref)."
+        },
+        "ipRef": {
+          "type": "string",
+          "description": "Opsiyonel vault:// IP referansı; yoksa adapter proxyRef URI hostu kullanılır."
+        }
+      }
     }
   }
 }
