@@ -89,9 +89,19 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(run_once(self.conn, "w1", adapters_dir=self.dir), "quarantined")
         self.assertEqual(get_job(self.conn, jid2)["status"], "auto_quarantine")
 
-    def test_unknown_matrix_action_quarantine(self):
+    def test_register_routes_then_api_fail_closed(self):
+        # #33: g2.com register has a pilot cell (Moderate/official_api) -> routes,
+        # then the default api executor fails closed on the browser FLOW (no baseUrl).
         self.write_adapter("s1", adapter(BROWSER_DOMAIN, ["register"], {"register": FLOW}))
         jid = self.put("s1", "register")
+        self.assertEqual(run_once(self.conn, "w1", adapters_dir=self.dir), "failed")
+        job = get_job(self.conn, jid)
+        self.assertEqual(job["status"], "queued")  # retryable backoff
+        self.assertIn("api_failed", job["last_error_code"])
+
+    def test_unmapped_operation_still_quarantines(self):
+        self.write_adapter("s1", adapter(BROWSER_DOMAIN, ["vote"], {"vote": FLOW}))
+        jid = self.put("s1", "vote")
         self.assertEqual(run_once(self.conn, "w1", adapters_dir=self.dir), "quarantined")
         self.assertEqual(get_job(self.conn, jid)["status"], "auto_quarantine")
 

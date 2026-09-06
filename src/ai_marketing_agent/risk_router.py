@@ -70,7 +70,20 @@ ACTION_ALIASES: dict[str, str] = {
     "review": "review_rating",
     "rating": "review_rating",
     "review_rating": "review_rating",
+    # Account-lifecycle actions (#33): known names; cells arrive via pilot
+    # overrides until the canonical CSV carries Register/Login columns.
+    "register": "register",
+    "signup": "register",
+    "sign_up": "register",
+    "login": "login",
+    "signin": "login",
+    "sign_in": "login",
+    "log_in": "login",
 }
+
+# Known actions without canonical CSV columns yet: recognized by the router
+# but quarantined unless a reviewed pilot override supplies the cell.
+ACTIONS_WITHOUT_COLUMNS = frozenset({"register", "login"})
 
 API_MEDIA = frozenset({"official_api", "cli_sdk", "webhook_bot", "unified_api"})
 BROWSER_MEDIA = frozenset({"local_browser_agent", "browser_extension"})
@@ -293,12 +306,17 @@ class PlatformRiskRouter:
 
         risk = action_risks.get(normalized)
         if not isinstance(risk, ActionRisk):
+            reason = (
+                f"no matrix cell for {normalized!r} yet; fail closed"
+                if normalized in ACTIONS_WITHOUT_COLUMNS
+                else "action risk is unavailable or invalid; fail closed"
+            )
             return self._quarantine(
                 channel_rank=rank,
                 site=site,
                 domain=domain,
                 action=normalized,
-                reason="action risk is unavailable or invalid; fail closed",
+                reason=reason,
             )
 
         if risk.main_risk == "N/A" or risk.best_medium == "none":

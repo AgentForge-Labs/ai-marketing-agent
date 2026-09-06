@@ -35,7 +35,8 @@ class CanonicalCatalogueTests(unittest.TestCase):
         self.assertEqual(self.catalogue.channels[-1].rank, 1000)
 
     def test_all_8000_action_cells_are_prevalidated(self):
-        self.assertEqual(sum(len(channel.action_risks) for channel in self.catalogue), 8000)
+        pilot = sum(len(cells) for cells in ChannelCatalogue.pilot_raw_cells().values())
+        self.assertEqual(sum(len(channel.action_risks) for channel in self.catalogue), 8000 + pilot)
 
     def test_domain_lookup_normalizes_www(self):
         self.assertEqual(self.catalogue.require_unique_domain("www.linkedin.com").site, "LinkedIn")

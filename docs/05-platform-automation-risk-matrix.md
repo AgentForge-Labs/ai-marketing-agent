@@ -161,6 +161,11 @@ The canonical CSV dataset contains these additional fields:
 
 The last ten fields are the canonical runtime routing model. Each action-risk cell begins with the main risk and embeds all medium risks plus `best=<medium>`. They are generated deterministically by `scripts/build_action_risk_matrix.py` for all 1,000 rows.
 
+Account-lifecycle actions `register`/`login` have no CSV columns yet: the router recognizes the names
+(`risk_router.ACTION_ALIASES`, `ACTIONS_WITHOUT_COLUMNS`) but quarantines them unless a reviewed cell exists in
+`data/pilot_action_cells.json` (pilot overrides, same cell grammar, validated at load; storage import keeps the
+JSON text as `raw_cell` provenance). Non-pilot domains stay `auto_quarantine` — fail closed.
+
 `Risk Evidence Tier` is either:
 
 - `Direct research` — platform-specific current evidence was reviewed; or

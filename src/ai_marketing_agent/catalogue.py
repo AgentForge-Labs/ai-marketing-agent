@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import csv
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
-from typing import Mapping
+from typing import Mapping, Optional
 
-from .risk_router import ACTION_COLUMNS, ActionRisk, RiskCellError, parse_action_risk
+from .risk_router import ACTION_COLUMNS, ACTIONS_WITHOUT_COLUMNS, ActionRisk, RiskCellError, parse_action_risk
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_CSV = PROJECT_ROOT / "data" / "saas_marketing_1000_channels_ranked - 1000 Channels.csv"
+PILOT_CELLS = PROJECT_ROOT / "data" / "pilot_action_cells.json"
 REQUIRED_BASE_COLUMNS = frozenset({"#", "Site", "Domain", "Channel Type"})
 EXPECTED_ACTION_RISK_MODEL_PREFIX = "action-medium-v1:"
 
@@ -51,8 +53,60 @@ class ChannelCatalogue:
         value = domain.strip().lower().rstrip(".")
         return value[4:] if value.startswith("www.") else value
 
+    @staticmethod
+    def pilot_raw_cells(overrides_path: Optional[Path] = PILOT_CELLS) -> dict[str, dict[str, str]]:
+        """Raw pilot cell strings per domain (provenance for storage import)."""
+        if overrides_path is None or not overrides_path.exists():
+            return {}
+        try:
+            raw = json.loads(overrides_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        if not isinstance(raw, dict):
+            return {}
+        return {
+            ChannelCatalogue._normalize_domain(str(domain)): dict(cells)
+            for domain, cells in raw.items()
+            if not str(domain).startswith("_") and isinstance(cells, dict)
+        }
+
+    @staticmethod
+    def _load_pilot_cells(overrides_path: Optional[Path]) -> dict[str, dict[str, ActionRisk]]:
+        """Reviewed per-domain cells for actions without CSV columns (#33).
+
+        Format: {"domain": {"register": "<cell>", "login": "<cell>"}} using the
+        exact canonical cell grammar (validated by parse_action_risk).
+        """
+        if overrides_path is None or not overrides_path.exists():
+            return {}
+        try:
+            raw = json.loads(overrides_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise CatalogueValidationError(f"cannot read pilot cells {overrides_path}: {exc}") from exc
+        if not isinstance(raw, dict):
+            raise CatalogueValidationError("pilot cells must be an object")
+        out: dict[str, dict[str, ActionRisk]] = {}
+        for domain, cells in raw.items():
+            if str(domain).startswith("_"):
+                continue  # _note and other metadata keys
+            if not isinstance(cells, dict):
+                raise CatalogueValidationError(f"pilot cells for {domain!r} must be an object")
+            parsed: dict[str, ActionRisk] = {}
+            for action, cell in cells.items():
+                if action not in ACTIONS_WITHOUT_COLUMNS:
+                    raise CatalogueValidationError(
+                        f"pilot cells only allow {sorted(ACTIONS_WITHOUT_COLUMNS)}, got {action!r}")
+                try:
+                    parsed[action] = parse_action_risk(cell)
+                except RiskCellError as exc:
+                    raise CatalogueValidationError(
+                        f"pilot cell {domain!r}/{action}: {exc}") from exc
+            out[ChannelCatalogue._normalize_domain(str(domain))] = parsed
+        return out
+
     @classmethod
-    def load(cls, path: str | Path = CANONICAL_CSV, *, require_1000: bool = True) -> "ChannelCatalogue":
+    def load(cls, path: str | Path = CANONICAL_CSV, *, require_1000: bool = True,
+             overrides_path: Optional[Path] = PILOT_CELLS) -> "ChannelCatalogue":
         source = Path(path)
         try:
             with source.open(encoding="utf-8-sig", newline="") as handle:
@@ -117,6 +171,19 @@ class ChannelCatalogue:
             raise CatalogueValidationError("catalogue ranks must be strictly contiguous starting at 1")
         if require_1000 and len(channels) != 1000:
             raise CatalogueValidationError(f"canonical catalogue must contain exactly 1,000 channels, found {len(channels)}")
+
+        pilot = cls._load_pilot_cells(overrides_path)
+        if pilot:
+            merged: list[Channel] = []
+            for channel in channels:
+                extra = pilot.get(cls._normalize_domain(channel.domain))
+                if extra:
+                    risks = dict(channel.action_risks)
+                    risks.update(extra)
+                    merged.append(replace(channel, action_risks=MappingProxyType(risks)))
+                else:
+                    merged.append(channel)
+            channels = merged
 
         return cls(tuple(channels), source)
 

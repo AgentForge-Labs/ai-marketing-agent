@@ -107,16 +107,17 @@ class StorageTests(unittest.TestCase):
 
     def test_repeated_full_import_is_idempotent(self):
         td, path, store = self.make_store()
+        n = 8000 + sum(len(cells) for cells in ChannelCatalogue.pilot_raw_cells().values())
         try:
             first = store.import_catalogue(self.catalogue)
-            self.assertEqual(first.to_dict(), {"channels": 1000, "action_risks": 8000, "changed_channels": 1000, "changed_action_risks": 8000})
+            self.assertEqual(first.to_dict(), {"channels": 1000, "action_risks": n, "changed_channels": 1000, "changed_action_risks": n})
             before = store.conn.execute("SELECT rank, source_hash, imported_at, updated_at FROM site_registry ORDER BY rank").fetchall()
             second = store.import_catalogue(self.catalogue)
             after = store.conn.execute("SELECT rank, source_hash, imported_at, updated_at FROM site_registry ORDER BY rank").fetchall()
-            self.assertEqual(second.to_dict(), {"channels": 1000, "action_risks": 8000, "changed_channels": 0, "changed_action_risks": 0})
+            self.assertEqual(second.to_dict(), {"channels": 1000, "action_risks": n, "changed_channels": 0, "changed_action_risks": 0})
             self.assertEqual([tuple(r) for r in before], [tuple(r) for r in after])
             self.assertEqual(store.table_count("site_registry"), 1000)
-            self.assertEqual(store.table_count("channel_action_risk"), 8000)
+            self.assertEqual(store.table_count("channel_action_risk"), n)
         finally:
             store.close(); td.cleanup()
 
@@ -128,7 +129,8 @@ class StorageTests(unittest.TestCase):
                 "SELECT channel_rank, action, main_risk, best_medium, medium_risks_json FROM channel_action_risk"
             ).fetchall()
             persisted = {(r["channel_rank"], r["action"]): r for r in rows}
-            self.assertEqual(len(persisted), 8000)
+            n = 8000 + sum(len(cells) for cells in ChannelCatalogue.pilot_raw_cells().values())
+            self.assertEqual(len(persisted), n)
             for channel in self.catalogue:
                 for action, risk in channel.action_risks.items():
                     row = persisted[(channel.rank, action)]
@@ -157,7 +159,8 @@ class StorageTests(unittest.TestCase):
             self.assertEqual(summary.changed_action_risks, 0)
             self.assertNotEqual(old_hash, new_hash)
             self.assertEqual(store.table_count("site_registry"), 1000)
-            self.assertEqual(store.table_count("channel_action_risk"), 8000)
+            n = 8000 + sum(len(cells) for cells in ChannelCatalogue.pilot_raw_cells().values())
+            self.assertEqual(store.table_count("channel_action_risk"), n)
         finally:
             store.close(); td.cleanup()
 
