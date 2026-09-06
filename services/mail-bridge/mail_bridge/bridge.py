@@ -49,7 +49,9 @@ def extract_link(text: str, pattern: Optional[str] = None) -> Optional[str]:
 
 
 # ref: vault://mail/<provider>/<account>  (account = secret namespace suffix)
-PROVIDERS = ("gmail", "gmail_imap", "proton", "mailfence", "disroot", "custom", "tuta")
+# hotmail is an alias of outlook (same Microsoft Graph endpoint).
+PROVIDERS = ("gmail", "gmail_imap", "proton", "mailfence", "disroot", "custom",
+             "outlook", "hotmail", "tuta")
 
 
 class MailBridge:
@@ -88,11 +90,16 @@ class MailBridge:
 
         if provider == "tuta":
             TutaProvider()  # always raises NotSupportedError
+        if provider in ("outlook", "hotmail"):
+            return self._open_outlook(ns)
         if provider == "gmail" and (capabilities or {}).get("api", True):
+            refresh_ns = self._gmail_refresh(ns)
+            if refresh_ns is not None:
+                return GmailApiProvider(refresh_ns)
             token = self._get(f"{ns}/oauth", f"vault://mail/gmail/oauth")
             if token:
                 return GmailApiProvider(lambda: self._get(f"{ns}/oauth", "vault://mail/gmail/oauth") or "")
-            # fall through to IMAP when no oauth token is configured
+            # fall through to IMAP when no oauth material is configured
         if provider in ("gmail", "gmail_imap"):
             host = self._get(f"{ns}/host", "vault://mail/imap/host") or "imap.gmail.com"
             return ImapProvider(host, int(self._get(f"{ns}/port", "vault://mail/imap/port") or 993),
@@ -116,6 +123,42 @@ class MailBridge:
             smtp_host=self._get(f"{ns}/smtp_host") or host,
             smtp_port=int(self._get(f"{ns}/smtp_port") or 465),
             user=user or "", password=password or "")
+
+
+    def _gmail_refresh(self, ns: str):
+        """Cached OAuth bearer from client_id/secret + refresh_token (None = not configured)."""
+        from .oauth import CachedToken
+
+        client_id = self._get(f"{ns}/client_id", "vault://mail/gmail/client_id")
+        refresh = self._get(f"{ns}/refresh", "vault://mail/gmail/refresh")
+        if not client_id or not refresh:
+            return None
+        secret = self._get(f"{ns}/client_secret", "vault://mail/gmail/client_secret") or ""
+        return CachedToken("https://oauth2.googleapis.com/token", client_id=client_id,
+                           client_secret=secret, refresh_token=refresh,
+                           scope="https://www.googleapis.com/auth/gmail.modify")
+
+    def _open_outlook(self, ns: str):
+        from .oauth import CachedToken
+        from .providers import OutlookGraphProvider
+
+        client_id = self._get(f"{ns}/client_id", "vault://mail/outlook/client_id")
+        refresh = self._get(f"{ns}/refresh", "vault://mail/outlook/refresh")
+        if not client_id or not refresh:
+            # Static bearer fallback (short-lived; refresh triple preferred).
+            token = self._get(f"{ns}/oauth", "vault://mail/outlook/oauth")
+            if token:
+                return OutlookGraphProvider(
+                    lambda: self._get(f"{ns}/oauth", "vault://mail/outlook/oauth") or "")
+            raise MailBridgeError(
+                f"outlook needs {ns}/client_id + {ns}/refresh (or {ns}/oauth bearer)")
+        secret = self._get(f"{ns}/client_secret", "vault://mail/outlook/client_secret") or ""
+        authority = self._get(f"{ns}/authority", "vault://mail/outlook/authority") or "common"
+        cached = CachedToken(
+            f"https://login.microsoftonline.com/{authority}/oauth2/v2.0/token",
+            client_id=client_id, client_secret=secret, refresh_token=refresh,
+            scope="Mail.Read Mail.Send offline_access")
+        return OutlookGraphProvider(cached)
 
 
 def to_mail(raw: RawMail) -> Mail:

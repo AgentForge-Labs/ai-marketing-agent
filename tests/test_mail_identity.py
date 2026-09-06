@@ -56,9 +56,21 @@ class BridgeWiringTests(unittest.TestCase):
         self.assertEqual(_bridge_provider_of("vault://mail/mailfence/a"), "mailfence")
         self.assertEqual(_bridge_provider_of("vault://mail/custom/a"), "custom")
         self.assertEqual(_bridge_provider_of("vault://mail/proton/a"), "proton")
+        self.assertEqual(_bridge_provider_of("vault://mail/outlook/a"), "outlook")
+        self.assertEqual(_bridge_provider_of("vault://mail/hotmail/a"), "hotmail")
         self.assertEqual(_bridge_provider_of("vault://mail/tuta/a"), "tuta")
         self.assertIsNone(_bridge_provider_of("vault://mail/gmail/oauth"))
         self.assertIsNone(_bridge_provider_of("vault://mail/imap/acme"))
+
+    def test_outlook_hotmail_dispatch(self):
+        self.assertIsInstance(_get_mailbox("vault://mail/outlook/acme"), BridgeMailbox)
+        self.assertIsInstance(_get_mailbox("vault://mail/hotmail/acme"), BridgeMailbox)
+
+    def test_vendored_bridge_v2_present(self):
+        import mail_bridge
+        for name in ["CachedToken", "OutlookGraphProvider", "build_authorize_url",
+                     "refresh_access_token"]:
+            self.assertTrue(hasattr(mail_bridge, name), name)
 
     def test_get_mailbox_dispatch(self):
         self.assertIsInstance(_get_mailbox("vault://mail/disroot/brand"), BridgeMailbox)

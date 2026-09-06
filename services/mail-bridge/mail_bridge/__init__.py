@@ -9,12 +9,14 @@ Errors never echo secrets (redacted).
 """
 from .bridge import Mail, MailBridge, extract_code, extract_link
 from .errors import MailBridgeError, NotSupportedError, ProviderError
+from .oauth import CachedToken, build_authorize_url, exchange_code, refresh_access_token
 from .providers import (
     CustomProvider,
     DisrootProvider,
     GmailApiProvider,
     ImapProvider,
     MailfenceProvider,
+    OutlookGraphProvider,
     ProtonBridgeProvider,
     SmtpProvider,
     TutaProvider,
@@ -28,11 +30,16 @@ __all__ = [
     "MailBridgeError",
     "NotSupportedError",
     "ProviderError",
+    "CachedToken",
+    "build_authorize_url",
+    "exchange_code",
+    "refresh_access_token",
     "CustomProvider",
     "DisrootProvider",
     "GmailApiProvider",
     "ImapProvider",
     "MailfenceProvider",
+    "OutlookGraphProvider",
     "ProtonBridgeProvider",
     "SmtpProvider",
     "TutaProvider",
