@@ -89,7 +89,12 @@ class MailBridge:
                              f"{ns}/password", f"vault://mail/{provider}/password")
 
         if provider == "tuta":
-            TutaProvider()  # always raises NotSupportedError
+            # Bridge-only (no official protocol): localhost bridge required.
+            return TutaProvider(
+                user or "", password or "",
+                bridge_host=self._get(f"{ns}/host", "vault://mail/tuta/host") or "127.0.0.1",
+                imap_port=int(self._get(f"{ns}/imap_port", "vault://mail/tuta/imap_port") or 1143),
+                smtp_port=int(self._get(f"{ns}/smtp_port", "vault://mail/tuta/smtp_port") or 1025))
         if provider in ("outlook", "hotmail"):
             return self._open_outlook(ns)
         if provider == "gmail" and (capabilities or {}).get("api", True):
