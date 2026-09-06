@@ -95,12 +95,7 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(run_once(self.conn, "w1", adapters_dir=self.dir), "quarantined")
         self.assertEqual(get_job(self.conn, jid)["status"], "auto_quarantine")
 
-    def test_api_branch_and_not_wired(self):
-        self.write_adapter("s1", adapter(API_DOMAIN, ["submitListing"], {"submitListing": FLOW}))
-        self.put("s1", "submitListing")
-        out = run_once(self.conn, "w1", run_fn=lambda a, d, f, v: Stub("done"),
-                       adapters_dir=self.dir)
-        self.assertEqual(out, "failed")  # api_fn missing -> fail, browser fn NOT used
+    def test_api_branch_uses_api_fn(self):
         self.write_adapter("s2", adapter(API_DOMAIN, ["submitListing"], {"submitListing": FLOW}))
         jid = self.put("s2", "submitListing")
         seen = {}
@@ -113,6 +108,14 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(out, "done")
         self.assertEqual(seen["medium"], "official_api")
         self.assertEqual(get_job(self.conn, jid)["status"], "done")
+
+    def test_api_branch_default_executor_fail_closed(self):
+        # Browser FLOW has no baseUrl -> default api executor fails closed, browser NOT used.
+        self.write_adapter("s1", adapter(API_DOMAIN, ["submitListing"], {"submitListing": FLOW}))
+        self.put("s1", "submitListing")
+        out = run_once(self.conn, "w1", run_fn=lambda a, d, f, v: Stub("done"),
+                       adapters_dir=self.dir)
+        self.assertEqual(out, "failed")
 
     def test_idle(self):
         self.assertEqual(run_once(self.conn, "w1", adapters_dir=self.dir), "idle")
