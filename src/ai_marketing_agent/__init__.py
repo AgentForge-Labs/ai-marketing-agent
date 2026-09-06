@@ -32,6 +32,7 @@ from .engagement import EngagementEvent, EngagementOutcome, RateLimiter, draft_r
 from .orchestrator import Campaign, ChannelCandidate, OrchestratorState, next_best_action, release, score_channel
 from .discovery import extract_page_model
 from .metrics import Metrics, get_metrics
+from .api import ApiServer
 from .orchestrator import AccountPacer, PacingRule
 from .privacy import ConsentRegistry, erase_subject, partition_expired, retention_cutoff
 from .perf import SLO, TTLCache, ConcurrencyGate, BenchmarkResult, benchmark
@@ -127,6 +128,7 @@ __all__ = [
     "erase_subject",
     "AccountPacer",
     "PacingRule",
+    "ApiServer",
     "SaaSStore",
     "Tenant",
     "Campaign",
