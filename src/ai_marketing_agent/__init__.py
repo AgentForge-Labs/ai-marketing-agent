@@ -33,6 +33,7 @@ from .orchestrator import Campaign, ChannelCandidate, OrchestratorState, next_be
 from .discovery import extract_page_model
 from .metrics import Metrics, get_metrics
 from .api import ApiServer
+from .worker import run_once, serve_forever
 from .orchestrator import AccountPacer, PacingRule
 from .privacy import ConsentRegistry, erase_subject, partition_expired, retention_cutoff
 from .perf import SLO, TTLCache, ConcurrencyGate, BenchmarkResult, benchmark
@@ -129,6 +130,7 @@ __all__ = [
     "AccountPacer",
     "PacingRule",
     "ApiServer",
+    "run_once",
     "SaaSStore",
     "Tenant",
     "Campaign",
