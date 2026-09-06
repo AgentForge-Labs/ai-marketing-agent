@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlsplit, parse_qs
 
@@ -21,6 +22,8 @@ from .saas import SaaSStore
 
 MAX_BODY = 64 * 1024
 MAX_AUTO_RISK = ("Low", "Moderate", "High")
+DASHBOARD_DIR = Path(__file__).resolve().parents[2] / "dashboard"
+DASHBOARD_FILES = {"index.html": "text/html; charset=utf-8", "app.js": "application/javascript; charset=utf-8"}
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -59,10 +62,33 @@ class _Handler(BaseHTTPRequestHandler):
         return self.server.store.authenticate_key(token)
 
     # -- routing --
+    def _serve_dashboard(self, name: str) -> bool:
+        """Static product dashboard (no data, no auth needed — API calls carry the key)."""
+        if name not in DASHBOARD_FILES:
+            return False
+        try:
+            body = (DASHBOARD_DIR / name).read_bytes()
+        except OSError:
+            self._send(404, {"error": "dashboard not installed"})
+            return True
+        self.send_response(200)
+        self.send_header("Content-Type", DASHBOARD_FILES[name])
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'")
+        self.end_headers()
+        self.wfile.write(body)
+        return True
+
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
         if path == "/health":
             self._send(200, {"status": "ok"})
+            return
+        if path == "/dashboard":
+            self._serve_dashboard("index.html")
+            return
+        if path == "/dashboard/app.js":
+            self._serve_dashboard("app.js")
             return
         tenant = self._auth()
         if tenant is None:
