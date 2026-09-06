@@ -363,7 +363,8 @@ class GmailApiMailbox:
         pass
 
 
-BRIDGE_PROVIDERS = frozenset({"mailfence", "disroot", "custom", "proton", "gmail_imap", "tuta"})
+BRIDGE_PROVIDERS = frozenset({"mailfence", "disroot", "custom", "proton", "gmail_imap",
+                               "outlook", "hotmail", "tuta"})
 
 
 def _bridge_provider_of(mailbox_ref: str) -> Optional[str]:

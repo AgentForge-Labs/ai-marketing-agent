@@ -318,6 +318,83 @@ class GmailApiProvider:
         return {"id": res.get("id", ""), "to": to}
 
 
+class OutlookGraphProvider:
+    """Outlook.com / Hotmail / Microsoft 365 via Microsoft Graph (OAuth2).
+
+    Setup (one time, per account): Azure app (personal MS accounts allowed) with
+    Mail.Read + Mail.Send + offline_access -> admin/user consent -> authorization
+    code -> exchange_code() -> store refresh_token in vault:
+      vault://mail/outlook/<acct>/client_id
+      vault://mail/outlook/<acct>/refresh   (refresh_token; client_secret only for confidential apps)
+    Hotmail addresses use the same Graph endpoint (provider alias 'hotmail').
+    """
+
+    TOKEN_HOST = "login.microsoftonline.com"
+    GRAPH = "https://graph.microsoft.com/v1.0"
+
+    def __init__(self, token_loader: Callable[[], str], http: Any = None) -> None:
+        self._token_loader = token_loader
+        self._http = http
+
+    def _call(self, method: str, path: str, payload: Optional[dict] = None) -> Any:
+        import json as _json
+        token = self._token_loader()
+        if not token:
+            raise ProviderError("outlook oauth token missing")
+        data = _json.dumps(payload).encode() if payload is not None else None
+        req = urlrequest.Request(f"{self.GRAPH}{path}", data=data, method=method,
+                                 headers={"Authorization": f"Bearer {token}",
+                                          "Content-Type": "application/json"})
+        opener = self._http or urlrequest.urlopen
+        try:
+            with opener(req, timeout=20) as r:
+                body = r.read().decode()
+                return _json.loads(body) if body else {}
+        except (HTTPError, URLError) as e:
+            raise ProviderError(f"outlook graph failed: {type(e).__name__}")
+
+    def fetch_recent(self, since_minutes: int = 10, subject_contains: Optional[str] = None,
+                     from_contains: Optional[str] = None, limit: int = 10) -> List[RawMail]:
+        res = self._call("GET", f"/me/messages?$top={max(1, min(limit, 50))}"
+                                "&$orderby=receivedDateTime desc"
+                                "&$select=id,subject,from,receivedDateTime,bodyPreview")
+        cutoff = time.time() - since_minutes * 60
+        out: List[RawMail] = []
+        for m in (res.get("value") or [])[:limit]:
+            try:
+                ts = parsedate_to_datetime(m.get("receivedDateTime", "")).timestamp()
+            except Exception:
+                ts = time.time()
+            if ts < cutoff:
+                continue
+            subject = m.get("subject", "") or ""
+            sender = ((m.get("from") or {}).get("emailAddress") or {}).get("address", "")
+            if subject_contains and subject_contains.lower() not in subject.lower():
+                continue
+            if from_contains and from_contains.lower() not in sender.lower():
+                continue
+            out.append(RawMail(id=m.get("id", ""), subject=subject, from_addr=sender,
+                               date_ts=ts, body_text=m.get("bodyPreview", "") or ""))
+        return out
+
+    def mark_processed(self, mail_id: str) -> None:
+        try:
+            self._call("PATCH", f"/me/messages/{mail_id}", {"isRead": True})
+        except ProviderError:
+            pass
+
+    def send(self, to: str, subject: str, body_text: str = "", **kw: Any) -> Dict[str, str]:
+        if not to or not subject:
+            raise ProviderError("send needs to + subject")
+        self._call("POST", "/me/sendMail", {"message": {
+            "subject": subject,
+            "body": {"contentType": "Text", "content": body_text or ""},
+            "toRecipients": [{"emailAddress": {"address": to}}],
+        }, "saveToSentItems": True})
+        return {"to": to, "subject": subject,
+                "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+
+
 class TutaProvider:
     """Tuta Mail CANNOT be automated: no IMAP/SMTP/public API as of 2026.
 
