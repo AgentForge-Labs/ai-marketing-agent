@@ -106,10 +106,15 @@ def run_once(
 
     try:
         if decision.selected_medium in API_MEDIA or decision.execution_mode == "api_auto":
-            if api_fn is None:
-                fail_job(conn, job.id, "api_not_wired")
+            try:
+                if api_fn is None:
+                    from .api_executor import default_api_fn
+                    result = default_api_fn(adapter, decision, flow, values)
+                else:
+                    result = api_fn(adapter, decision, flow, values)
+            except Exception as e:
+                fail_job(conn, job.id, f"api_failed:{type(e).__name__}:{str(e)[:120]}")
                 return "failed"
-            result = api_fn(adapter, decision, flow, values)
         else:
             result = (run_fn or _default_run_fn)(adapter, decision, flow, values)
     except Exception as e:
