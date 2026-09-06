@@ -392,25 +392,44 @@ class AutonomousRunner:
         is_discovery: bool = False,
         values: Optional[Dict[str, Any]] = None,
         policy_registry: Any = None,
+        session_store: Any = None,
     ) -> RunnerResult:
         """
         Discovery ve normal mod aynı provider — MultiLogin yoksa headed, proxy per-tenant.
-        proxy yoksa default bağlantı.
+        proxy yoksa default bağlantı. session_store verilirse login session restore/save yapılır (#31).
         """
         provider = BrowserProvider()
         # proxy per-tenant: adapter.captcha.proxyRef veya tenant env
         proxy_ref = self.config.proxy_ref
+        tenant = tenant_id or str(self.decision.domain)
+        session_state = None
+        if session_store is not None:
+            try:
+                session_state = session_store.load(tenant, str(self.decision.domain))
+                self._log("session_restored", {"hit": bool(session_state)})
+            except Exception:
+                session_state = None
         launched = await provider.launch(
-            tenant_id=tenant_id or str(self.decision.domain),
+            tenant_id=tenant,
             profile_id=profile_id,
             proxy_ref=proxy_ref,
             is_discovery=is_discovery,
+            session_state=session_state,
         )
         self._log(
             "browser_launch",
             {"mode": launched.mode, "proxy_used": bool(launched.proxy_used), "is_discovery": is_discovery, "tenant": tenant_id},
         )
         try:
-            return await self.run_browser_flow(launched.page, flow, adapter, values=values, policy_registry=policy_registry)
+            result = await self.run_browser_flow(launched.page, flow, adapter, values=values, policy_registry=policy_registry)
+            if session_store is not None and result.status == "done":
+                try:
+                    from .session import extract_session
+                    state = await extract_session(launched.context)
+                    session_store.save(tenant, str(self.decision.domain), state)
+                    self._log("session_saved", {})
+                except Exception as e:
+                    self._log("session_save_failed", {"error": str(e)[:120]})
+            return result
         finally:
             await provider.close(launched)
