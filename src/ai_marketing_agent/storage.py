@@ -133,6 +133,7 @@ class RuntimeStore:
         now = utc_now()
         changed_channels = 0
         changed_action_risks = 0
+        pilot_cells = ChannelCatalogue.pilot_raw_cells()
         with self.conn:
             for channel in catalogue:
                 raw = dict(channel.raw)
@@ -191,7 +192,12 @@ class RuntimeStore:
                     changed_channels += 1
 
                 for action, risk in channel.action_risks.items():
-                    raw_cell = raw[ACTION_COLUMNS[action]]
+                    if action in ACTION_COLUMNS:
+                        raw_cell = raw[ACTION_COLUMNS[action]]
+                    else:
+                        # Pilot override cell (#33): provenance from the JSON file.
+                        raw_cell = pilot_cells.get(
+                            ChannelCatalogue._normalize_domain(channel.domain), {}).get(action, "")
                     medium_json = _stable_json(dict(risk.medium_risks))
                     risk_hash = _sha256_text(
                         _stable_json(

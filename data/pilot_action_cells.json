@@ -1,0 +1,9 @@
+{
+  "_note": "Pilot register/login cells (#33). Heuristic, same convention as the canonical CSV: re-check current ToS/API/auth before first execution. Only actions in risk_router.ACTIONS_WITHOUT_COLUMNS are allowed here.",
+  "linkedin.com": {
+    "login": "Moderate | public_http=N/A; official_api=Moderate; cli_sdk=N/A; webhook_bot=N/A; unified_api=N/A; local_browser_agent=High; browser_extension=N/A | best=official_api | note=Pilot override 2026-09-06: OAuth login only; re-check ToS before first execution."
+  },
+  "g2.com": {
+    "register": "Moderate | public_http=N/A; official_api=Moderate; cli_sdk=N/A; webhook_bot=N/A; unified_api=N/A; local_browser_agent=High; browser_extension=N/A | best=official_api | note=Pilot override 2026-09-06: vendor/API-channel signup only; re-check ToS before first execution."
+  }
+}
